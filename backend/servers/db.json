@@ -1,0 +1,4 @@
+{
+    "TESTDB":"mongodb://localhost:27017/pokergrid",
+    "ServerPort" : "3000"
+}

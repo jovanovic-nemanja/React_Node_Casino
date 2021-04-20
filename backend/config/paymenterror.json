@@ -1,0 +1,35 @@
+{
+    "yaarpayouterrcode":{"0016":"Invalid Order Amount Format","0017":"Invalid Request Amount","0018":"Invalid Application Id",
+        "0019":"Invalid Channel Id","0020":"Channel Not Available",
+        "0021":"No Connector Available",
+        "0022":"Invalid Currency","0023":"Merchant not found","0024":"Notify URL not found","0025":"Invalid Notify URL","0026":"Return URL not found","0027":"Invalid Return URL","0028":"Invalid Signature","0029":"Invalid Version","0030":"Invalid Merchant Order Number","0031":"Invalid Client IP","0033":"Invalid Device","0034":"Invalid Deposit Name","0035":"Invalid Deposit Account","0036":"Invalid Extra Details","0037":"Execute Notify Not Found","0039":"Transaction Not Found","0040":"Request Denied","0041":"Account Name Not Found","0043":"Account Number Not Found","0044":"Invalid Payout Bank Code","0045":"Invalid Request Time","0046":"Invalid Account Attribute","0047":"Invalid Bank Branch","0048":"Invalid IFSC Code","0049":"Invalid Bank Province","0050":"Invalid Remarks","0051":"Insufficient Balance","0052":"Merchant Account Disabled","0053":"Merchant Application Id is disabled","0054":"Duplicate Transaction","0200":"Transaction Expired","0201":"Payment Not Completed","0202":"Account Details Don’t Match","0010":"System Error","0014":"Parameter Error","0999":"Unknown Error","0058":"Bank Used Not Available","0059":"Invalid Time Stamp"},
+    "WalletType" : { "Withdrawl" : 2,
+        "Deposit" : 1
+    },
+    "PAYMENTS" : {
+        "YaarPay" : "8035",
+        "YaarPay1" : "8036",
+        "YaarPayS" : ""
+    },
+    "WalletType_STRING" : {
+        "Withdrawl" : "payout",
+        "Deposit" : "deposit"
+    },
+    "PAYMENTSTATUS" : {
+        "processing" : "processing"
+    },
+    "PAYMENTWITHDRAWLSTATUS" : {
+        "pending" : "pending"
+    },
+    "PaymentStatus_bool" : {
+        "Approve" :"Approve",
+        "Reject" : "Reject",
+        "Paid" : "Paid",
+        "pending" : "Pending",
+        "OnHold" : "OnHold"
+    },
+    "PaymentconfigType" : {
+        "YaarPay" :"YaarPay",
+        "Ruppe" : "Paygate10"
+    }
+}

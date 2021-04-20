@@ -1,0 +1,17 @@
+{
+    "STRING_SATTATYPES" : { 
+        "regular" : "1",
+        "king-bazaar" : "2",
+        "starline" : "3"
+    },
+    "KEY_SATTATYPES" : {
+        "1" : "regular",
+        "2" : "king-bazaar",
+        "3" : "starline"
+    },
+    "SATTA_STATUS" : {
+        "pending" : "1",
+        "win" : "2",
+        "lost" : "3"
+    }
+}

@@ -1,0 +1,10 @@
+{
+"betgames":{"passkey":"WKSKQ-5GLXV-YTUVE-R4G4C","url":"https://integrations01.betgames.tv","apicode":"mobiwalkers"},
+"MySlotty":{"RPCSecret":"85fec6c8-43e9-4966-9832-087469276daa","HMACsalt":"25f0071a-5da2-44f4-8ed1-b98e0e9dbbf7","URL":"https://site-sgp1.mrslotty.com/integrations/igamez-fairbets/rpc?"},
+"EVOPLAY":{"secret_key":"a964299b0cfd88ea6a481caf6f4a9ab1","apiVersion":"2","projectId":"1234","getURL":"http://api.8provider.com/Game/getURL?"},
+"winnerpoker":{"URL":"https://pokergrid.io/poker/init?","operator":"igamez"},
+"xpg":{"operatorid":"2152","passkey":"EsNR5UeMBmhJX4QfCgpFzvck6YVydt","url":"https://lobby.xpgstaging.com/?","serverurl":"https://api.xpgstaging.com/Services/ExternalApi.svc/"},
+"vivo":{"operatorid":"3003155","url":"https://games.vivogaming.com/?","url2":"https://2vivo.com/flashrungame/RunGenericGame.aspx?","serverid":"6401748","passkey":"0isdK908saLKMASDm","gamelist":"http://2vivo.com/flash/getactivetablesex.aspx?"},
+"ezugi":{"hashkey":"37688e9a-46d9-4ea2-bdb9-19088ecbd8fe","url":"https://play.livetables.io/auth/?","operatorId":10430004,"gamelist":"wss://engine.livetables.io:443/GameServer/gameNotifications"},
+"xpress":{"url":"https://igamez-lobby.staging-hub.xpressgaming.net/Launcher?","hashkey":"AcvlnxiYj6AgpSMw4EoY"},
+"wac":{"url":"https://pi.njoybingo.com/game.do?","pn":"fairbets"}}

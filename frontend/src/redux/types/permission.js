@@ -1,0 +1,4 @@
+export const ROLES_GET_DATA = "ROLES_GET_DATA";
+export const ROLES_GET_FILTER_DATA = "ROLES_GET_FILTER_DATA";
+export const ROLES_GET_ALL_DATA = "ROLES_GET_ALL_DATA";
+export const ROLES_DATA = "ROLES_DATA";

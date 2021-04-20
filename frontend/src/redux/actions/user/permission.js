@@ -1,22 +1,15 @@
-import {AXIOS_REQUEST,set_page,} from "../auth/index"
+import {AXIOS_REQUEST,Set_reducer,} from "../auth/index"
 import { toast } from "react-toastify";
-import {permissionload,permissionget,permissionfilter} from "../../types/players"
+import {permissionload,permissionget,permissionfilter} from "../../types"
 import confirm from "reactstrap-confirm"
  
 export const getData = (params) => {
   return  async (dispatch) => {
     var rdata = await AXIOS_REQUEST("users/role_menuload",{})
     if(rdata.status){
-      var rows = set_page(params,rdata);
-      var fdata =rows['fdata'];
-      var totalPages = rows['totalPages'];
       dispatch({ type: permissionload, data: rdata.data })
-      dispatch({
-        type: permissionget,
-        data: fdata,
-        totalPages:totalPages,
-        params
-      })
+      Set_reducer(dispatch,params,rdata,permissionget)
+
     }else{
       toast.error("fail")
     }
@@ -53,20 +46,12 @@ export const menudelete = (value,params)=>{
     var result =  await confirm();
     if(result){
       var rdata = await AXIOS_REQUEST("users/role_menudelete",{data : value})
-        if(rdata.status){
-          var rows = set_page(params,rdata);
-          var fdata =rows['fdata'];
-          var totalPages = rows['totalPages'];
-          dispatch({ type: permissionload, data: rdata.data })
-          dispatch({
-            type: permissionget,
-            data: fdata,
-            totalPages:totalPages,
-            params
-          })
-          }else{
-            toast.error("fail")
-          }
+      if(rdata.status){
+        dispatch({ type: permissionload, data: rdata.data })
+        Set_reducer(dispatch,params,rdata,permissionget)
+      }else{
+        toast.error("fail")
+      }
     }else{
 
     }
@@ -77,16 +62,8 @@ export const menusave =(data,params)=>{
     return async(dispatch)=>{
       var rdata = await AXIOS_REQUEST("users/role_menusave",{data : data})
         if(rdata.status){
-          var rows = set_page(params,rdata);
           dispatch({ type: permissionload, data: rdata.data })
-          var fdata =rows['fdata'];
-          var totalPages = rows['totalPages'];
-          dispatch({
-          type: permissionget,
-          data: fdata,
-          totalPages:totalPages,
-          params
-          })
+          Set_reducer(dispatch,params,rdata,permissionget)
         }else{
           toast.error("fail")
         }
@@ -97,16 +74,9 @@ export const menuupdate = (datas,params)=>{
     return async(dispatch)=>{
       var rdata = await AXIOS_REQUEST("users/role_menuupdate",{data : datas})
         if(rdata.status){
-          var rows = set_page(params,rdata);
-          var fdata =rows['fdata'];
           dispatch({ type: permissionload, data: rdata.data })
-          var totalPages = rows['totalPages'];
-          dispatch({
-              type: permissionget,
-              data: fdata,
-              totalPages:totalPages,
-              params
-          })
+          Set_reducer(dispatch,params,rdata,permissionget)
+
         }else{
           toast.error("fail")
         }
@@ -118,15 +88,8 @@ export const pagenationchange = (params,data)=>{
     var row = {
       data : getState().userslist.permission.allData
     }
-    var rows =  set_page(params,row)
-    var fdata = rows['fdata'];
-    var totalPages = rows['totalPages']
-    dispatch({
-      type:permissionget,
-      data: fdata,
-      totalPages:totalPages,
-      params
-    })
+    Set_reducer(dispatch,params,row,permissionget)
+
   }
 }
 

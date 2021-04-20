@@ -1,4 +1,5 @@
-import {getIndex} from "../../actions/auth/index"
+import {set_page} from "../../actions/auth/index"
+
 const initialState = {
     data: [],
     params: null,
@@ -6,7 +7,7 @@ const initialState = {
     totalPages: 0,
     filteredData: [],
     totalRecords: 0,
-    sortIndex: []
+    sortIndex: [0,0]
   }
   
   export const playerlimit = (state = initialState, action) => {
@@ -15,66 +16,53 @@ const initialState = {
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex(
-            action.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
-          allData: action.allData,
-          totalRecords: action.allData.length,
-        }
-      case "PLAYERLIMITS_SET_PAGENATION":
-        return {
-          ...state,
-          data: action.data,
-          totalPages: action.totalPages,
-          params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
 
         case "PLAYERLIMITS_FILTER_DATA":
-          let value = action.value;
-          let bool = action.bool + "";
-            let filteredData = []
-            if (value.length) {
-              filteredData = state.allData.filter(item => {
-                let startsWithCondition = false;
-                let includesCondition = false;
-                if(bool === "date"){
-                  var date = new Date(item.date);
-                  var date1 = new Date(value[0]);
-                  var date2 = new Date(value[1]);
-                  if(date >= date1 && date <= date2){
-                    startsWithCondition = true;
-                    includesCondition = true;
-                  }
+          let value = (action.value);
+          let bool = (action.bool).toString();
+          let data = [];
+          if (value.length || Object.keys(value).length > 0) {
+            data = state.allData.filter(item => {
+              let startsWithCondition = false;
+              let includesCondition = false;
+              if(bool === "date"){
+                var date = new Date(item.userid.date);
+                var date1 = new Date(value.start);
+                var date2 = new Date(value.end);
+                if(date >= date1 && date <= date2){
+                  startsWithCondition = true;
+                  includesCondition = true;
                 }else{
-                  var uitem = item[bool] + "";
-                  startsWithCondition = uitem.toLowerCase().startsWith(value.toLowerCase());
-                  includesCondition = uitem.toLowerCase().startsWith(value.toLowerCase());
+                  startsWithCondition = false;
+                  includesCondition = false;
                 }
-    
-                if (startsWithCondition) {
-                  return startsWithCondition
-                } else if (!startsWithCondition && includesCondition) {
-                  return includesCondition
-                } else return null
-              })
-              .slice(state.params.page - 1, state.params.perPage)
-    
-              return { ...state, filteredData }
-            } else {
-              filteredData = state.data
-              return { ...state, filteredData }
-            }
+              }else{
+                value = value.toString();
+                var uitem = (item.userid[bool]).toString();
+                startsWithCondition = uitem.toLowerCase().startsWith(value.toLowerCase());
+                includesCondition = uitem.toLowerCase().includes(value.toLowerCase());
+              }
+              if (startsWithCondition) {
+                return startsWithCondition
+              } else if (!startsWithCondition && includesCondition) {
+                return includesCondition
+              } else return null
+            }).slice(state.params.page - 1, state.params.perPage)
+            let row = Object.assign({},{status : true , data : data});
+            let rows = set_page(action.params, row)
+            return {...state, data: rows["fdata"], totalPages:rows["totalPages"], params : rows["params"], totalRecords: data.length, sortIndex: [rows["params"]["skip"] + 1,rows["params"]["skip2"]] }
+          } else {
+            data = state.allData
+            let row = Object.assign({},{status : true , data : data});
+            let rows = set_page(action.params, row)
+            return {...state, data: rows["fdata"], totalPages:rows["totalPages"], params : rows["params"], totalRecords: data.length, sortIndex: [rows["params"]["skip"] + 1,rows["params"]["skip2"]] }
+          }
             
       default:
         return state

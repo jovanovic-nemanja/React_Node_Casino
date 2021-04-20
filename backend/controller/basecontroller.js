@@ -1,7 +1,6 @@
 const USERS = require("../models/users_model");
 const playersUser = USERS.GamePlay;
 const session_model = USERS.sessionmodel;
-const adminUser = USERS.adminUser;
 const wallethistory_model = USERS.wallethistory;
 const config = require('../db');
 const IPblockModel = require("../models/tools_model").toolgetoipblock_model;
@@ -9,13 +8,55 @@ const EXCHGCONFIG = require("../config/exchgXmlConfig");
 const path = require("path");
 var xml2js = require('xml2js');
 var parser = new xml2js.Parser();
-const moment= require('moment')
+const timermoment= require('moment')
 const axios = require("axios");
 var crypto = require('crypto');
 const url = require('url');
+const fs = require("fs");
+var moment = require('moment-timezone');
+const { GamePlay } = require("../models/users_model");
 
 const ENCRYPTION_KEY = "e807f1fcf82d132f9bb018ca6738a19f"; // Must be 256 bits (32 characters)
 const IV_LENGTH = 16; // For AES, this is always 16
+
+exports.Indiatime = () => {
+	var time = moment.tz(new Date(), "Asia/Kolkata");
+	time.utc("+530").format();
+	return time;	
+}
+
+exports.getPlayerBalanceCal = (item) => {
+	if (item.balance < 0) {
+		let row = {
+			balance : 0,
+			bonusbalance : parseInt(item.bonusbalance + item.balance)
+		}
+		return row;
+	} else {
+		let row = {
+			balance : parseInt(item.balance),
+			bonusbalance : parseInt(item.bonusbalance)
+		}
+		return row;
+	}
+}
+
+
+exports.getPlayerBalanceCal_ = (item) => {
+	if (item.balance < 0) {
+		let row = {
+			balance : parseInt(item.bonusbalance + item.balance),
+			bonusbalance : parseInt(item.bonusbalance + item.balance)
+		}
+		return row;
+	} else {
+		let row = {
+			balance : parseInt(item.bonusbalance + item.balance),
+			bonusbalance : parseInt(item.bonusbalance)
+		}
+		return row;
+	}
+}
 
 exports.encrypt = (text) => { 
  let iv = crypto.randomBytes(IV_LENGTH);
@@ -131,39 +172,21 @@ exports.get_accessPassword = (privatekey,parameter) =>{
     return md5;
 }
 
-exports.get_useritem_fromid =  req =>{
+exports.getUserItem =  req =>{
 	var id = req.user;
     return id;
 }
 
 exports.get_stand_date_first = (date)=>{
-	return new Date(moment(new Date(date)).format('YYYY-MM-DD'))
-	// var dd = new Date(date);	
-	// var year = dd.getFullYear();
-	// var month = parseInt(dd.getMonth()) + 1;
-	// var day = dd.getDate();
-	// var standdate = new Date(year +"-"+ month +"-"+ day);
-	// return standdate;
+	return new Date(timermoment(new Date(date)).format('YYYY-MM-DD'))
 }
 
 exports.get_stand_date_end = (date)=>{
-	return new Date(moment(new Date(date)).format('YYYY-MM-DD'))
-	// var dd = new Date(date);
-	// var year = dd.getFullYear();
-	// var month = parseInt(dd.getMonth()) + 1;
-	// var day = dd.getDate();
-	// var standdate = new Date(year +"-"+ month +"-"+ day);
-	// return standdate;
+	return new Date(timermoment(new Date(date)).format('YYYY-MM-DD'))
 }
 
 exports.get_stand_date_end1 = (date)=>{
-	return new Date(moment(new Date(new Date(date).valueOf() + 24 * 60 * 60 * 1000)).format('YYYY-MM-DD'))
-	// var dd = new Date(new Date(date).valueOf() + 24 * 60 * 60 * 1000);
-	// var year = dd.getFullYear();
-	// var month = parseInt(dd.getMonth()) + 1;
-	// var day = dd.getDate();
-	// var standdate = new Date(year +"-"+ month +"-"+ day);
-	// return standdate;
+	return new Date(timermoment(new Date(new Date(date).valueOf() + 24 * 60 * 60 * 1000)).format('YYYY-MM-DD'))
 }
 
 exports.Bfind = async (model,condition = {})=>{
@@ -199,7 +222,7 @@ exports.BfindSort = async (model,condition = {}) =>{
 }
 
 exports.get_date = ()=>{
-	return new Date(moment(new Date()).format('YYYY-MM'))
+	return new Date(timermoment(new Date()).format('YYYY-MM'))
 	// var d = new Date();
     // var year = d.getFullYear();
     // var month = parseInt(d.getMonth()) + 1;
@@ -247,10 +270,42 @@ exports.cv_ebase64=(rstring) =>{
 	// }
 }
 
+exports.BSave =async (indata)=>{
+	// try{
+		var handle = null;
+		await indata.save().then(rdata=>{
+			if(!rdata){
+				handle = false;
+			}else{
+				handle = rdata;
+			}
+		});
+		return handle;
+	// }catch(e){
+	// 	return false;
+	// }
+}
+
 exports.BSortfind = async (modal,condition = {},sortcondition = {})=>{
-	try{
+	// try{
 		var data;
 		await modal.find(condition).sort(sortcondition).then( rdata => { 
+			data = rdata;
+		});
+		if(!data){
+			return false;
+		}else{
+			return data;
+		}
+	// }catch(e){
+	// 	return false;
+	// }
+}
+
+exports.BSortfindSelect = async (modal,condition = {},sortcondition = {},select = "")=>{
+	try{
+		var data;
+		await modal.find(condition,select).sort(sortcondition).then( rdata => { 
 			data = rdata;
 		});
 		if(!data){
@@ -278,6 +333,16 @@ exports.BSortfindPopulate = async (modal,condition = {},sortcondition = {},popul
 		return false;
 	}
 }
+
+// exports.jwt_encode = async function(string){
+// 	var token = await JWTTOEKN.jwt_encode(string);
+//     return token;
+// }
+
+// exports.jwt_decode =async function(string){
+// 	var token = await JWTTOEKN.jwt_decode(string);	
+// 	return token;
+// }
 
 function get_md5string(string){
 	function RotateLeft(lValue, iShiftBits) {
@@ -503,6 +568,23 @@ exports.BfindOne = async (model,condition = {})=>{
 	}
 }
 
+exports.BfindOneSelect = async (model,condition = {},select = "")=>{
+	try{
+		var outdata = null; 
+		await model.findOne(condition,select).then(rdata=>{
+			if(!rdata){
+				outdata = false;
+			}else{
+				outdata = rdata;
+			}
+		});
+		return outdata;
+	}catch(e){
+		return false;
+	}
+}
+
+
 exports.BfindOneAndUpdate = async (model,condition = {},data) =>{
 	// try{
 		var updatehandle = await model.findOneAndUpdate(condition,data,{ new: true,upsert: true,})
@@ -529,6 +611,47 @@ exports.BfindOneAndDelete =async (model,condition)=>{
 		}
 	}catch(e){
 		return false;
+	}
+}
+
+exports.imageupload = (req,res,next) =>{
+	if( req.files && req.files.length){
+		var filename = req.files[0].filename;
+		var filetype = req.files[0].mimetype.split("/")[1];
+		var now_path = config.BASEURL  + filename;
+		var new_path = config.BASEURL  + filename + "." + filetype;
+		fs.rename(now_path , new_path ,  (err) =>{
+			if(err){
+				req.body.imagesrc = false;
+			}else{
+				var img = filename + "." + filetype;
+				req.body.imagesrc = img;
+				next();
+			}
+		});
+	}else{
+		req.body.imagesrc = false;
+		next();
+	}
+}
+
+
+exports.appupload = (req,res,next) =>{
+	
+	if( req.files && req.files.length){
+		var filename = req.files[0].filename;
+		var now_path = config.APPURL  + filename;		
+		var apkname = req.body.apkUrl;
+		var new_path = config.APPURL  + apkname;
+		fs.rename(now_path , new_path ,  (err) =>{
+			if (err) {
+				next();
+			} else {
+				next();
+			}
+		});
+	} else {
+		next();
 	}
 }
 
@@ -570,18 +693,29 @@ exports.email_balanceupdate =async(email,amount,wallets)=>{
         return false;
     }else{
 		var row = Object.assign({},wallets,{updatedbalance : outdata.balance});
-		await this.save_wallets_hitory(row);
+		 this.save_wallets_hitory(row);
 		return outdata.balance;
+    }
+
+}
+
+// updated bonusbalance by email
+exports.email_bonusbalanceupdate =async(email,amount,wallets)=>{
+	var outdata = await this.BfindOneAndUpdate(playersUser,{email : email},{$inc : {bonusbalance : amount}})
+    if(!outdata){
+        return false;
+    }else{
+		var row = Object.assign({},wallets,{updatedbalance : outdata.bonusbalance});
+		this.save_wallets_hitory(row);
+		return outdata.bonusbalance;
     }
 
 }
 
 exports.save_wallets_hitory = async (rows) =>{
 	if(rows.debited == 0 && rows.credited == 0){
-		// console.log("----")
 	}else{
 		var dd =  await this.data_save(rows,wallethistory_model);
-		// console.log(dd)
 	}
 	return true
 }
@@ -614,7 +748,7 @@ exports.array_sort = (data,handle) =>{
 }
 
 exports.sendRequest = async (body , key, callback) => {
-	try{
+	// try {
 		const instance = axios.create({
 			headers: key ? EXCHGCONFIG.SECUREBASEHEADER : EXCHGCONFIG.BASEHEADER,
 		});
@@ -630,7 +764,42 @@ exports.sendRequest = async (body , key, callback) => {
 		}else{
 			callback(false);
 		}
-	}catch(err){
-		callback(false);
+	// }catch(err){
+	// 	callback(false);
+	// }
+}
+
+exports.player_balanceupdatein_Id = async(amount,username,wallets)=>{
+	var amount = parseFloat(amount);
+	var outdata = await playersUser.findOneAndUpdate({id :username },{$inc : {balance : amount}},{new :true,upsert:true});
+	if(!outdata){
+		return false;
+	}else{
+		var row = Object.assign({},wallets,{updatedbalance : outdata.balance});
+		 this.save_wallets_hitory(row);
+		 this.sesssion_update_id(username);
+		return outdata.balance;
 	}
+}
+
+exports.save_wallets_hitory = async (rows) =>{
+	if(rows.debited == 0 && rows.credited == 0){
+	}else{
+		await this.data_save(rows,wallethistory_model);
+	}
+	return true
+}
+
+exports.sesssion_update_id = async(id)=>{
+	var uphandle = await this.BfindOneAndUpdate(session_model,{id},{inittime : this.get_timestamp()});
+	if(uphandle){
+		return true
+	}else{
+		return false
+	}
+}
+
+exports.getSportsBalance = async (userid) => {
+	let player = await this.BfindOne(GamePlay, { id: userid });
+	return player.balance;
 }

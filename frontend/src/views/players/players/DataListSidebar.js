@@ -5,8 +5,8 @@ import Flatpickr from "react-flatpickr";
 import {connect} from "react-redux"
 import {toast} from "react-toastify"
 import {currency, language} from "../../../redux/actions/auth/currency"
-import {signup,update_action} from "../../../redux/actions/Players/player/index"
-import {status_options,gender,playerid} from "../../../configs/providerconfig"
+import {signup} from "../../../redux/actions/Players/player/index"
+import {status_options,gender,signup_device} from "../../../configs/providerconfig"
 import {validateUsername} from "../../../redux/actions/auth/index"
 
 class DataListSidebar extends Component {
@@ -30,86 +30,19 @@ class DataListSidebar extends Component {
     currency : currency[0].value,
     status : status_options[1].value,
     cashdesk : "",
-    permission : playerid,
+    signup_device : signup_device[0].value,
     resident : false,
     test : false,
     usingloyaltyprogram : false,
     subscribedtoemail : false,
     subscribedtosms : false,
     _id : "",
-    emailverify : false
+    emailverify : false,
   }
-    componentDidUpdate(prevProps, prevState) {
-
-      if (this.props.data !== null && prevProps.data === null) {
-        var data = this.props.data;
-        this.setState({
-          _id : data._id,
-          username : data.username,
-          firstname : data.firstname,
-          accountholder : data.accountholder,
-          lastname : data.lastname,
-          middlename : data.middlename,
-          gender : data.gender,
-          address : data.address,
-          zip_code : data.zip_code,
-          city_name : data.city_name,
-          email : data.email,
-          language : data.language,
-          phone : data.phone,
-          mobilenumber : data.mobilenumber,
-          birthday : data.birthday,
-          region_name : data.region_name,
-          currency : data.currency,
-          status : data.status,
-          cashdesk : data.cashdesk,
-          permission : data.permission,
-          created : data.created,
-          resident : data.resident,
-          test : data.test,
-          usingloyaltyprogram : data.usingloyaltyprogram,
-          subscribedtoemail : data.subscribedtoemail,
-          subscribedtosms : data.subscribedtosms,
-          emailverify : data.emailverify
-        })
-  
-      }
-      if (this.props.data === null && prevProps.data !== null) {
-        this.setState({
-          username : "",
-          password : "",
-          firstname : "",
-          accountholder : "",
-          lastname : "",
-          middlename : "",
-          gender : gender[0].value,
-          address : "",
-          zip_code : "",
-          city_name : "",
-          email : "",
-          language : language[0].value,
-          phone : "",
-          mobilenumber : "",
-          birthday : new Date(),
-          region_name : "",
-          currency : currency[0].value,
-          status : status_options[1].value,
-          cashdesk : "",
-          permission : playerid,
-          resident : false,
-          test : false,
-          usingloyaltyprogram : false,
-          subscribedtoemail : false,
-          subscribedtosms : false,
-          emailverify : false
-        })
-      }
-    }
 
   handleregister = e =>{
     e.preventDefault();
     var row = this.state;
-    this.props.handleSidebar(false, true);
     if(this.state.permission === ""){
       toast.error("Please select Permission .")
       return;
@@ -118,12 +51,8 @@ class DataListSidebar extends Component {
       if(!usernamecheck){
         return;
       }
-      if(this.props.data !== null){
-        delete row.password;
-        this.props.update_action(row,this.props.dataParams,this.props.me.value);
-      }else{
-        this.props.signup(row,this.props.dataParams,this.props.me.value);
-      }
+      this.props.handleSidebar(false, true);
+      this.props.signup(row,this.props.dataParams);
     }
   }
 
@@ -330,6 +259,22 @@ class DataListSidebar extends Component {
                   />
                 </FormGroup>
               </Col>
+
+              <Col md="4" sm="12">
+                <FormGroup>
+                  <Label for="signupDevice">signupDevice</Label>
+                  <Select
+                    className="React"
+                    classNamePrefix="select"
+                    id="signupDevice"
+                    name="signupDevice"
+                    options={signup_device}
+                    value={signup_device.find(obj => obj.value === this.state.signup_device)}
+                    defaultValue={signup_device[0]}
+                    onChange={e => this.setState({ signup_device: e.value })}
+                  />
+                </FormGroup>
+              </Col>
               <Col md="4" sm="12">
                 <FormGroup>
                   <Label for="cashdesk">Cashdesk</Label>
@@ -419,11 +364,11 @@ class DataListSidebar extends Component {
           <ModalFooter>
             <Row>
                 <Col xs="12 justify-content-start">
-                    <Button color="primary" type="submit">
-                        {data !== null ? "Update" : "Submit"}
-                    </Button>
-                    <Button className="ml-1" color="danger" outline onClick={() => handleSidebar(false, true)}> Cancel
-                    </Button>
+                  <Button color="primary" type="submit">
+                      {data !== null ? "Update" : "Submit"}
+                  </Button>
+                  <Button className="ml-1" color="danger" outline onClick={() => handleSidebar(false, true)}> Cancel
+                  </Button>
                 </Col>
             </Row>
           </ModalFooter>
@@ -439,4 +384,4 @@ const mapStateToProps = state => {
   }
 }
 
-export default connect(mapStateToProps,{signup,update_action})(DataListSidebar)
+export default connect(mapStateToProps,{signup})(DataListSidebar)

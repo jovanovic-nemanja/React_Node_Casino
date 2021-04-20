@@ -24,6 +24,7 @@ import "prismjs/themes/prism-tomorrow.css"
 import 'jsoneditor-react/es/editor.min.css';
 import 'react-date-range/dist/styles.css'; // main style file
 import 'react-date-range/dist/theme/default.css'; // theme css file
+import "./assets/scss/components/customizer.scss"
 const LazyApp = lazy(() => import("./App"))
 
 // configureDatabase()

@@ -20,7 +20,6 @@ class Customizer extends React.Component {
 
   themesave=()=>{
     var inputdata = this.props.customizer;
-    inputdata['email'] = this.props.user.values.email;
     this.props.themeinforsave(inputdata);
   } 
 
@@ -400,7 +399,7 @@ class Customizer extends React.Component {
                 </div>
 
                 <div>
-                  <Button.Ripple color="success" onClick={()=>{
+                  <Button.Ripple  color="success" onClick={()=>{
                     this.themesave();
                   }}>Save
                   </Button.Ripple>
@@ -418,7 +417,6 @@ class Customizer extends React.Component {
 const themeinfor = (state) =>{
   return {
     customizer : state.customizer.customizer,
-    user : state.auth.login
   }
 }
 export default connect(themeinfor,{themeinforsave})(Customizer)

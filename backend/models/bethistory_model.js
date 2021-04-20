@@ -1,32 +1,38 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const BaseCon = require("../controller/basecontroller");
-const nowdate = BaseCon.get_date();
+const basecontroller = require("../controller/basecontroller")
 
-module.exports.BettingHistory_model =(dt = nowdate)=>{
+
+const BettingHistory_model =()=>{
     var  UserSchema = new Schema({
-        GAMEID : {
-            type : String,
-            required : true,
-        },
-        USERID : {
-            type : String,
-            required : true  
-        },
+        // GAMEID : {
+        //     type : String,
+        //     required : true,
+        // },
+        // USERID : {
+        //     type : String,
+        //     required : true  
+        // },
         LAUNCHURL : {
             type : String,
             required : true
         },
+        gameid : {
+            type: Schema.Types.ObjectId, ref: 'game_game_list',
+        },  
+        providerid : {
+            type: Schema.Types.ObjectId, ref: 'game_gameprovider',
+        },  
+        userid : {
+            type: Schema.Types.ObjectId, ref: 'user_users',
+        },      
         AMOUNT : {
             type : Number,
             required : true
         },
         betting : {
             type :Object,
-            required : true,
-            default : {
-                prevbalance : 0
-            }
+            required : true
         },
         TYPE : {
             type : String,
@@ -34,12 +40,16 @@ module.exports.BettingHistory_model =(dt = nowdate)=>{
         },
         DATE: {
             type: Date,
-            default: Date.now
         },
     });
-    try {
-        return mongoose.model(dt + "_Betting_history", UserSchema);
-    } catch (e) {
-        return mongoose.model(dt + "_Betting_history");
-    }
+
+    
+    UserSchema.pre('save', function() {
+        this.set({ DATE: basecontroller.Indiatime() });
+    });
+    return mongoose.model( "Betting_history", UserSchema)
+}
+
+module.exports ={
+    BettingHistory_model : BettingHistory_model(),
 }

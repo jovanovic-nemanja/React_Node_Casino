@@ -1,17 +1,15 @@
 import { history } from "../../../history"
-import axios from "axios"
 import { Root} from "../../../authServices/rootconfig"
 import {AXIOS_REQUEST} from "./index"
-import {LOGIN_URL} from "../../../urls"
-import{setSession,url_path,fake_session} from "./index"
+import {LoginUrl} from "../../../urls"
+import{setSession,url_path,fake_session ,notification} from "./index"
 import { toast } from "react-toastify"
 import io from 'socket.io-client'
+import * as AcionTypes from "../../types"
 
-const BASEURL = Root.adminurl
-
-export const get_userinfor =(user) =>{
+export const get_userinfor =() =>{
   return async(dispatch) =>{
-    var response = await AXIOS_REQUEST("users/get_userinfor",{user});
+    var response = await AXIOS_REQUEST("users/get_userinfor",);
     if(response.status){
       return dispatch({
         type : "PROFILE_USER",
@@ -27,13 +25,10 @@ export const loginWithJWT = user => {
     var rdata = await AXIOS_REQUEST("users/adminlogin",{username: user.email,password: user.password},dispatch,true);
     if(rdata.status){
       toast.success("Successfully logged In");
-      console.log(rdata)
        setSession(rdata.data);
-      window.sessionStorage.setItem("activeitem","1612096323945");
-      window.sessionStorage.setItem("activeGroups",JSON.stringify(["1601932220849"]));
       window.location.assign("/");
     }else{
-      toast.error(rdata.error)
+      toast.error(rdata.data)
     }
       
   }
@@ -41,7 +36,80 @@ export const loginWithJWT = user => {
 
 export const setSidebar = () => {
   return async dispatch => {
-    var rdata = await AXIOS_REQUEST("users/adminsidebar_load");
+  
+  }
+}
+
+export const logoutWithJWT = () => {
+  return async dispatch => {
+    // await AXIOS_REQUEST("users/logout",);
+    fake_session();
+    dispatch({ type : "LOGIN_WITH_JWT", payload :false});
+    history.push(LoginUrl);
+  }
+}
+
+export const session_checked = (decoded)=>{
+  return async(dispatch) =>{
+    Root.socket = io(Root.admindomain,{query : {auth : decoded}});
+    // Root.socket = io("51.79.157.0:1998");
+    
+    var user = await AXIOS_REQUEST("users/get_user_auth",{token : decoded});
+    var userdata = user.data;
+    dispatch({ type : "PROFILE_USER",data : userdata});
+
+
+    Root.socket.on("destory",(dd)=>{ 
+      if(dd.data[userdata.email] ){
+        fake_session();
+        window.location.assign(LoginUrl);
+      }
+    });
+    
+    Root.socket.emit("setsession", {token :  decoded});
+    
+    Root.socket.on("datetime",(date)=>{ 
+      dispatch({ type : "SET_DATE" ,data : date });      
+    });
+  
+    Root.socket.on("balance",(barray)=>{
+      if(barray.data){
+        if(barray.data[userdata.email]){
+          dispatch({  type : "GETBALANCE",  data : barray.data[userdata.email] });
+        }
+      }
+    });
+
+    
+
+    // Root.socket.on("AllNotification",data=> {
+    //     let allnoti = data.data;  
+    //     notification(allnoti)
+    // })
+
+    Root.socket.on("webNotification",data=> {
+      let allnoti = data.data;  
+      notification(allnoti)
+
+    })
+
+    Root.socket.on("UserNotification",data=> {
+      let allnoti = data.data;  
+      if (allnoti.userid === userdata.email) {
+        notification(allnoti)
+      }
+    })
+
+    var rdata =  await AXIOS_REQUEST("users/get_themeinfor")
+    if(rdata.status){
+      dispatch({ type : "THEMSET", theme : rdata.data })
+    }
+    if(url_path() === LoginUrl ){
+      history.push("/");
+    }
+
+
+    rdata = await AXIOS_REQUEST("users/adminsidebar_load");
     if(rdata.status){
       dispatch({ 
         type : "SIDEVAR_DATA",
@@ -51,52 +119,28 @@ export const setSidebar = () => {
     }else{
 
     }
-  }
-}
 
-export const logoutWithJWT = () => {
-  return async dispatch => {
-    await AXIOS_REQUEST("users/logout",);
-    fake_session();
-    dispatch({ type : "LOGIN_WITH_JWT", payload :false});
-    history.push(LOGIN_URL);
-  }
-}
 
-export const session_checked = (decoded)=>{
-  return async(dispatch) =>{
-    
-    console.log(decoded)
-    var user = await AXIOS_REQUEST("users/get_userinfor",{token : decoded});
-    var userdata = user.data;
-    dispatch({ type : "PROFILE_USER",data : userdata});
-
-    Root.socket = io(Root.admindomain,{query:{ authtoken : decoded}});
-    Root.socket.on("destory",(dd)=>{
-      fake_session();
-      window.location.assign(LOGIN_URL);
-    });
-
-    
-    Root.socket.on("datetime",(date)=>{ 
-      dispatch({ type : "SET_DATE" ,data : date });      
-    });
-  
-    Root.socket.on("balance",(barray)=>{
-      if(barray.data){
-        dispatch({  type : "GETBALANCE",  data : barray.data });
-      }
-    });
-    var rdata =  await AXIOS_REQUEST("users/get_themeinfor",{data : userdata.email})
+    rdata = await AXIOS_REQUEST("cms/cmsload",{},dispatch,true);
     if(rdata.status){
-      dispatch({ type : "THEMSET", theme : rdata.data })
-    }
-    if(url_path() === LOGIN_URL ){
-      history.push("/");
+      let row = rdata.data;
+      dispatch({type : AcionTypes.GETREFERALINK,data :  row.Referrallink});
+      dispatch({type : AcionTypes.FirstPageSettingLogo,data : row.logoimg});
+      dispatch({type : AcionTypes.FirstpageSetting_cmsfootertext,data : row.cmsfootertext});
+
+    }else{
     }
     return true;
   }
 }
+
+
+export const cmsload = () =>{
+  return async (dispatch) =>{
+   
+  }
+}
+
 
 export const changeRole = role => {
   return dispatch => dispatch({ type: "CHANGE_ROLE", userRole: role })
@@ -175,19 +219,20 @@ export const kycdocreject =(data)=>{
 
 export const kycdownload = (data) => {
   return dispatch => {
-    axios.get(BASEURL + "file/download/"+ data.filename+"/"+data.originalname,).then( response =>{
-    })
+    // axios.get(BASEURL + "file/download/"+ data.filename+"/"+data.originalname,).then( response =>{
+    // })
   }
 }
 
 export const changepassword =(user) =>{
   return async(dispatch) =>{
-    var rdata = await AXIOS_REQUEST("users/adminchangepassword",{user : user})
-      if(rdata.status){
-        setSession(rdata.token);
-        window.location.assign("/");
-      }else{
-      }
+    var rdata = await AXIOS_REQUEST("users/adminchangepassword",{user},dispatch,true);
+    if(rdata.status){
+      toast.success("successfully changed");
+    }else{
+      toast.error(rdata.error)
+
+    }
   }
 }
 
@@ -215,40 +260,6 @@ export const role_update = () =>{
       })
     }else{
 
-    }
-  }
-}
-
-export const savePokerGridAPI = data => {
-  return async dispatch => {
-    var response = await AXIOS_REQUEST("users/save_pokergrid_api", data);
-    if (response.status) {
-      toast.success("Successfully saved!");
-    } else {
-      toast.error(response.data)
-    }
-  }
-}
-
-export const loadPokerAPI = data => {
-  return async dispatch => {
-    var response = await AXIOS_REQUEST("users/load_pokergrid_api", data);
-    if (response.status) {
-      dispatch({
-        type: "POKER_API_DATA",
-        data: response.data
-      })
-    }
-  }
-}
-
-export const updatePokerGridAPI = data => {
-  return async dispatch => {
-    var response = await AXIOS_REQUEST("users/update_pokergrid_api", data);
-    if (response.status) {
-      toast.success("Successfully updated!");
-    } else {
-      toast.error(response.data)
     }
   }
 }

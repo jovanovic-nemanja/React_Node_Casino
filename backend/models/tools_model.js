@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const basecontroller = require("../controller/basecontroller")
 
 const toolgetoipblock_model = () =>{
     var  UserSchema = new Schema({
@@ -9,9 +10,14 @@ const toolgetoipblock_model = () =>{
         },
         date: {
             type: Date,
-            default: Date.now
         },
     });
+        
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
+    });
+
     return mongoose.model('ipblock_model', UserSchema)
 }
 

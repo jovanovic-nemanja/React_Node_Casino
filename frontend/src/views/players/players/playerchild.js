@@ -4,127 +4,136 @@ import {UncontrolledDropdown,  DropdownMenu,  DropdownToggle,  DropdownItem,Inpu
 import DataTable from "react-data-table-component"
 import ReactPaginate from "react-paginate"
 import { history } from "../../../history"
-import { ChevronDown,  ChevronLeft,  ChevronRight, Plus,Lock} from "react-feather"
+import { ChevronDown,  ChevronLeft,  ChevronRight,Lock} from "react-feather"
 import { connect } from "react-redux"
-import {  getData,user_detail_show,  filterData,depositaction,withdrawaction,pagenationchange,multiblockaction,resetpass,get_inactive_players} from "../../../redux/actions/Players/player/index"
+import {  getData,userDetailShow,  filterData,depositAction,withdrawalAction,pagenationChange,multiBlockAction,resetpass,getInactivePlayers, getTotal} from "../../../redux/actions/Players/player/index"
 import Sidebar from "./DataListSidebar"
 import classnames from "classnames"
 import { toast } from "react-toastify"
 import Select from "react-select"
-import Flatpickr from "react-flatpickr";
-import {currency} from "../../../redux/actions/auth/currency"
 import {Amount_Types} from "../../../configs/providerconfig"
-import {gender,selectedStyle,pagenation_set,test} from "../../../configs/providerconfig"
-import {Root,prefix,appprefix} from "../../../authServices/rootconfig"
+import {gender,selectedStyle,pagenation_set, DPWDComment} from "../../../configs/providerconfig"
+import {Root} from "../../../authServices/rootconfig"
 import { DateRangePicker  } from 'react-date-range';
-import Moment from 'react-moment';
 import DatePicker from "../../lib/datepicker"
-Moment.globalFormat = 'YYYY/MM/DD hh:mm:ss';
+import {dateConvert} from "../../../redux/actions/auth"
+
+const prefix = Root.prefix;
 
 const ActionsComponent = props => {
   return (
     <div className="data-list-action d-flex">
       <div className="badge badge-pill badge-light-success mr-1" onClick={()=>{props.Deposit()}} >DP</div>
       <div className="badge badge-pill badge-light-danger mr-1" onClick={()=>{props.withdraw()}} >WD</div>
-      {/* <Edit  className="cursor-pointer mr-1" size={20} onClick={() => {return props.currentData(props.row) }} /> */}
       <Lock  className="cursor-pointer" size={20} onClick={() => {return props.resetpassword(props.row) }} />
-      {/* <div className="badge badge-pill badge-light-warning" onClick={()=>{props.kick()}} >KP</div> */}
-      {/* <Eye className="cursor-pointer badge-light-primary" style={{marginLeft:'3px'}} onClick={()=>{props.viewUserInfo(props.row)}}  size={20}/> */}
     </div>
   )
 }
 
 const FilterComponent = props => {
-  let state = props.state.filters
+  let state = props.state.filters;
   return (
     <div className='p-1 pt-2 pb-2'>
       <Row>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='6' sm='6' xs='12'>
           <FormGroup>
             <Label for="Registration Date">Registration Date</Label>
-            <Flatpickr  value={new Date(state.date).toISOString()}  className="form-control" options={{  mode: "range"  }} onChange={e => props.handleFilter(e,"date")} />
+            <DatePicker onChange={e => props.handleFilter(e,"date")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Username</Label>
             <Input  type="text"  placeholder="Enter UserName" value={state.username} onChange={e => props.handleFilter(e.target.value,"username")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Player ID</Label>
             <Input  type="number"  placeholder="Enter Player Id" value={state.id} onChange={e => props.handleFilter(e.target.value,"id")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="basicInput">Region</Label>
-            <Input  type="number"  placeholder="Enter Region" value={state.region_name} onChange={e => props.handleFilter(e.target.value,"region_name")} />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="Verification Date">Verification Date</Label>
-            <Flatpickr value={new Date()} className="form-control" options={{  mode: "range"  }} onChange={date => { }} />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">First Name</Label>
             <Input  type="text"  placeholder="Enter First Name" value={state.firstname} onChange={e => props.handleFilter(e.target.value,"firstname")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Last Name</Label>
             <Input  type="text"  placeholder="Enter Last Name" value={state.lastname} onChange={e => props.handleFilter(e.target.value,"lastname")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Address</Label>
             <Input  type="text"  placeholder="Enter Address" value={state.address} onChange={e => props.handleFilter(e.target.value,"address")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="gender">Gender</Label>
             <Select className="React" classNamePrefix="select" value={ gender.find( obj=>obj.value === state.gender ) } name="gender" options={gender} onChange={e => props.handleFilter(e.value,"gender")}  />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Email</Label>
             <Input  type="text"  placeholder="Enter Email" value={state.email} onChange={e => props.handleFilter(e.target.value,"email")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
+          <FormGroup>
+            <Label for="basicInput">Mobile</Label>
+            <Input  type="text"  placeholder="Enter Mobile Number" value={state.mobilenumber} onChange={e => props.handleFilter(e.target.value,"mobilenumber")} />
+          </FormGroup>
+        </Col>
+        <Col md='6' sm='6' xs='12'>
+            <Label for="test">Inactive Players </Label>
+            <FormGroup>
+              <DatePicker onChange={(e)=>props.DateChange_action(e)} />
+            </FormGroup>
+        </Col>
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
+          <FormGroup>
+            <Label for="basicInput">Region</Label>
+            <Input  type="number"  placeholder="Enter Region" value={state.region_name} onChange={e => props.handleFilter(e.target.value,"region_name")} />
+          </FormGroup>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
+          <FormGroup>
+            <Label for="Verification Date">Verification Date</Label>
+            <Flatpickr value={new Date()} className="form-control" options={{  mode: "range"  }} onChange={date => { }} />
+          </FormGroup>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="birthday">Birthday</Label>
             <Flatpickr name="birthday" id="birthday" className="form-control"
               value={new Date(state.birthday).toISOString()} onChange={date => { props.handleFilter(date,"birthday") }} />
           </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Registration Source</Label>
             <Input  type="text"  placeholder="Enter Registration Source"/>
           </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="currency">Currency</Label>
             <Select  className="React" classNamePrefix="select" id="currency" name="currency" options={currency} defaultValue={currency[0]}/>
           </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Client Category</Label>
             <Input  type="text"  placeholder="Enter Client Category"/>
           </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        </Col> */}
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">External ID</Label>
             <Input  type="text"  placeholder="Enter External ID"/>
@@ -135,43 +144,23 @@ const FilterComponent = props => {
             <Label for="First Deposit Date">First Deposit Date</Label>
             <Flatpickr value={new Date()} className="form-control" options={{  mode: "range"  }} onChange={date => { }} />
           </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        </Col> */}
+
+        {/* <Col lg='2' md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="test">Is Test</Label>
             <Select className="React" classNamePrefix="select" options={test} defaultValue={test[0]} />
           </FormGroup>
-        </Col>
-        {/* <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="test">Permission</Label>
-            <Select  className="React" classNamePrefix="select" options={props.permission}
-              value={props.permission ? props.permission.find(obj=> obj.value === state.permission) : null}
-              defaultValue={props.permission && props.permission.length > 0 ? props.permission[0].value : []}
-              onChange={e => props.handleFilter(e.value,"permission")}
-            />
-          </FormGroup>
         </Col> */}
-        <Col lg='12' md='12' sm='12' xs='12'>
-          <Row>
-            <Col md="2">
-              <Label for="test">Inactive Players : </Label>
-            </Col>
-            <Col md="6">
-              <DatePicker onChange={(e)=>props.DateChange_action(e)} />
-                {/* <Label onClick={()=>props.datetoggleModal()} className="font-weight-bold" style={{fontSize:"1rem"}}>
-                  <Moment  date={(new Date(props.state.selectionRange.startDate))} /> ~ 
-                  <Moment  date={(new Date(props.state.selectionRange.endDate))} />
-                </Label> */}
-            </Col>
-          </Row>
-        </Col>
+      
+       
       </Row>
     </div>
   )
 }
 
 const CustomHeader = props => {
+  let {totalRecords,sortIndex} = props.dataList;
   return (
     <div className='p-1 pt-2 pb-2'>
       <Row>
@@ -179,7 +168,7 @@ const CustomHeader = props => {
           <UncontrolledDropdown className="data-list-rows-dropdown d-block ">
             <DropdownToggle color="" className="sort-dropdown">
               <span className="align-middle mx-50">
-                {`${props.index[0] ? props.index[0] : 0} - ${props.index[1] ? props.index[1] : 0} of ${props.total}`}
+                {`${sortIndex[0]} - ${sortIndex[1]} of ${totalRecords}`}
               </span>
             <ChevronDown size={15} />
             </DropdownToggle>
@@ -192,20 +181,14 @@ const CustomHeader = props => {
           </DropdownMenu>
           </UncontrolledDropdown>
         </Col>
-        <Col md="2" >
-          <Button className="add-new-btn" color="primary" onClick={() =>props.multiblock(props.parsedFilter,props.me.selectedRows)} outline>
-            <Plus size={15} />
-            <span className="align-middle">Block</span>
+        <Col md="4" className="text-right">
+
+          <Button className="add-new-btn mr-1" color="primary" onClick={() =>props.multiblock(props.parsedFilter,props.me.selectedRows)} >
+            Block
           </Button>          
-        </Col>
-        <Col md="2" xs='6' className='justify-content-end align-items-center' style={{display:'flex'}}>
-          <Button
-            className="add-new-btn"
-            color="primary"
-            onClick={() => props.handleSidebar(true, true)}
-            outline>
-            <Plus size={15} />
-            <span className="align-middle">Create</span>
+
+          <Button className="add-new-btn" color="primary" onClick={() => props.handleSidebar(true, true)} >
+            Create
           </Button>
         </Col>
       </Row>
@@ -264,8 +247,8 @@ class ListViewConfig extends Component {
             sortable: true,
             minWidth: "70px",
             cell: row => (
-              <div style={{textDecoration:"underline"}} onClick={()=>this.props.user_detail_show(row)}>
-                {row.signup_device ? appprefix : prefix}{row.fakeid}
+              <div style={{textDecoration:"underline"}} onClick={()=>this.props.userDetailShow(row)}>
+                { prefix + row.signup_device} {"-"}{row.fakeid}
               </div>
             )
           },
@@ -318,29 +301,29 @@ class ListViewConfig extends Component {
           },
           {
             name: "balance",
-            selector: "balance",
+            selector: "playerid.balance",
             sortable: true,
             minWidth: "50px",
-            cell : row => (
-              <div>
-                {
-                  row.balance ? parseFloat(row.balance).toFixed(0) : "0"
-                }
-              </div>
-            )
+            // cell : row => (
+            //   <div>
+            //     {
+            //       row.playerid.balance ? parseInt(row.playerid.balance).toFixed(0) : "0"
+            //     }
+            //   </div>
+            // )
           },
           {
             name: "bonusbalance",
-            selector: "bonusbalance",
+            selector: "playerid.bonusbalance",
             sortable: true,
             minWidth: "50px",
-            cell : row => (
-              <div>
-                {
-                  row.bonusbalance ? parseFloat(row.bonusbalance).toFixed(0) : "0"
-                }
-              </div>
-            )
+            // cell : row => (
+            //   <div>
+            //     {
+            //       row.playerid.bonusbalance ? parseInt(row.playerid.bonusbalance).toFixed(0) : "0"
+            //     }
+            //   </div>
+            // )
           },          
           {
             name: "permission",
@@ -358,7 +341,12 @@ class ListViewConfig extends Component {
             name: "createdby",
             selector: "created",
             sortable: true,
-            minWidth: "100px",
+            minWidth: "200px",
+            cell : row => (
+              <div>
+                {row.created}
+              </div>
+            )
           },
           {
             name: "mobilenumber",
@@ -417,7 +405,12 @@ class ListViewConfig extends Component {
             name: "date",
             selector: "date",
             sortable: true,
-            minWidth: "100px",
+            minWidth: "200px",
+            cell : row => (
+              <div>
+                {dateConvert(row.date)}
+              </div>
+            )
           },
           {
             name: "zip code",
@@ -841,11 +834,15 @@ class ListViewConfig extends Component {
         addNew: false,
         Amount_type : Amount_Types[0].value,
         filters : {
-          date : [new Date().toISOString()],
+          date : {
+            start :"",
+            end : ""
+          },
           username : "",
           id : "",
           region_name : "",
           email : "",
+          mobilenumber : "",
           firstname : "",
           lastname : "",
           address : "",
@@ -857,26 +854,29 @@ class ListViewConfig extends Component {
         password2 : "",
         password1 : "",
         comment : "",
-        datemodal : false
+        datemodal : false,
+        bonusid : "",
+        reasoncomment : ""
     }
 
     componentDidMount(){
-      this.props.getData(this.props.parsedFilter )
+      this.props.getData(this.props.parsedFilter );
+      this.props.getTotal()
     }
 
     handleFilter = (value,bool) => {
       var filters = this.state.filters;
       filters[bool] = value;
       this.setState({ filters: filters });
-      this.props.filterData(value,bool);
+      this.props.filterData(value,bool,this.props.parsedFilter);
     }
 
     handleRowsPerPage = value => {
-      let { parsedFilter, pagenationchange } = this.props
+      let { parsedFilter, pagenationChange } = this.props
       let page = parsedFilter.page !== undefined ? parsedFilter.page : 1
       history.push(`${history.location.pathname}?page=${page}&perPage=${value}`)
       this.setState({ rowsPerPage: value })
-      pagenationchange({ page: page, perPage: value })
+      pagenationChange({ page: page, perPage: value })
     }
 
     handleCurrentData = obj => {
@@ -938,11 +938,11 @@ class ListViewConfig extends Component {
 
 
     handlePagination = page => {
-      let { parsedFilter, pagenationchange } = this.props
+      let { parsedFilter, pagenationChange } = this.props
       let perPage = parsedFilter.perPage !== undefined ? parsedFilter.perPage : pagenation_set[0]
       let urlPrefix = `${history.location.pathname}`
       history.push(`${urlPrefix}?page=${page.selected + 1}&perPage=${perPage}`)
-      pagenationchange({ page: page.selected + 1, perPage: perPage })
+      pagenationChange({ page: page.selected + 1, perPage: perPage })
       this.setState({ currentPage: page.selected })
     }
 
@@ -963,15 +963,19 @@ class ListViewConfig extends Component {
         toast.error("Please enter correct amount");
         return;
       }else{
+        // if (this.state.Amount_type === 1 && this.state.bonusid.length <= 0) {
+        //   toast.error("Please enter Bonus");
+        //   return;
+        // }
         this.setState(prevState => ({
           modal: !prevState.modal
         }))
         switch(this.state.type){
           case "deposit":
-            this.props.depositaction({comment : this.state.comment,amount : parseInt(this.state.amount),email : this.state.selected.email,username : this.state.selected.username,amounttype : this.state.Amount_type},this.props.parsedFilter,this.state.filters);
+            this.props.depositAction({reasoncomment : this.state.reasoncomment,comment : this.state.comment,amount : parseInt(this.state.amount),email : this.state.selected.email,username : this.state.selected.username,amounttype : this.state.Amount_type, bonusid : this.state.bonusid},this.props.parsedFilter,this.state.filters);
           break;
           case "withdraw":
-            this.props.withdrawaction({comment : this.state.commen,amount : parseInt(this.state.amount),email : this.state.selected.email,username : this.state.selected.username,amounttype : this.state.Amount_type},this.props.parsedFilter,this.state.filters);
+            this.props.withdrawalAction({reasoncomment : this.state.reasoncomment,comment : this.state.commen,amount : parseInt(this.state.amount),email : this.state.selected.email,username : this.state.selected.username,amounttype : this.state.Amount_type},this.props.parsedFilter,this.state.filters);
           break;
           default:
             break;
@@ -980,7 +984,7 @@ class ListViewConfig extends Component {
     }
 
     DateChange_action = (date) =>{
-      this.props.get_inactive_players(this.props.parsedFilter,date)
+      this.props.getInactivePlayers(this.props.parsedFilter,date)
     }
 
   render() {
@@ -1044,16 +1048,31 @@ class ListViewConfig extends Component {
               </ModalFooter>
             </Form>
           </Modal>
+
           <Modal isOpen={this.state.modal} toggle={this.toggleModal}className="modal-dialog-centered modal-sm">
             <ModalHeader toggle={this.toggleModal} className="bg-primary">
               {this.state.type}
             </ModalHeader>
             <ModalBody className="modal-dialog-centered d-block">
+              
+             
+
               <Col md="12">
                 <Label >AMOUNT TYPE</Label>
                 <Select className="React" classNamePrefix="select" options={Amount_Types} value={Amount_Types.find(obj => obj.value === this.state.Amount_type)}
                 defaultValue={Amount_Types[0]} onChange={e => this.setState({ Amount_type: e.value })} />
               </Col>
+
+              {
+                this.state.Amount_type === 1 && this.state.type === "deposit" ?
+                <Col md="12">
+                  <Label >Bonus TYPE</Label>
+                  <Select className="React" classNamePrefix="select" options={this.props.dataList.bonusoptions} value={this.props.dataList.bonusoptions.find(obj => obj.value === this.state.bonusid)}
+                    onChange={e => this.setState({ bonusid: e.value })} />
+                </Col>
+                : null
+              }
+
               <Col md="12">
                 <Label >Amount</Label>
                 <Input type="number" value={this.state.amount} onChange={(e)=>this.setState({amount :e.target.value })} />
@@ -1062,6 +1081,13 @@ class ListViewConfig extends Component {
                 <Label >Comment</Label>
                 <Input type="textarea" value={this.state.comment} onChange={(e)=>this.setState({comment :e.target.value })} />
               </Col>
+
+              <Col md="12">
+                <Label >TYPE</Label>
+                <Select className="React" classNamePrefix="select" options={DPWDComment} value={DPWDComment.find(obj => obj.value === this.state.reasoncomment)}
+                  onChange={e => this.setState({ reasoncomment: e.value })} />
+              </Col>
+
             </ModalBody>
             <ModalFooter>
               <Button color="primary" onClick={()=>this.amountaction()}>
@@ -1069,6 +1095,7 @@ class ListViewConfig extends Component {
               </Button>
             </ModalFooter>
           </Modal>
+
           <FilterComponent
             handleFilter={this.handleFilter}
             {...this.props}
@@ -1105,6 +1132,7 @@ class ListViewConfig extends Component {
               )}
               noHeader
               subHeader
+              sortable
               responsive
               pointerOnHover
               selectableRows
@@ -1115,7 +1143,8 @@ class ListViewConfig extends Component {
                 <CustomHeader
                   handleFilter={this.handleFilter}
                   responsive
-                  multiblock={this.props.multiblockaction}
+                  dataList={this.props.dataList}
+                  multiblock={this.props.multiBlockAction}
                   handleRowsPerPage={this.handleRowsPerPage}
                   rowsPerPage={rowsPerPage}
                   total={totalRecords}
@@ -1130,14 +1159,8 @@ class ListViewConfig extends Component {
             <Sidebar
               show={sidebar}
               data={currentData}
-              me={this.state}
-              updateData={this.props.updateData}
-              addData={this.props.addData}
               handleSidebar={this.handleSidebar}
-              thumbView={this.props.thumbView}
-              getData={this.props.getData}
               dataParams={this.props.parsedFilter}
-              addNew={this.state.addNew}
             />
             <div className={classnames("data-list-overlay", {show: sidebar})} onClick={() => this.handleSidebar(false, true)} />
           </div>
@@ -1153,4 +1176,4 @@ const mapStateToProps = state => {
   }
 }
 
-export default connect(mapStateToProps, {  getData, user_detail_show, filterData,depositaction,withdrawaction,pagenationchange,multiblockaction,resetpass,get_inactive_players})(ListViewConfig)
+export default connect(mapStateToProps, {  getData, userDetailShow, filterData,depositAction,withdrawalAction,pagenationChange,multiBlockAction,resetpass,getInactivePlayers, getTotal})(ListViewConfig)

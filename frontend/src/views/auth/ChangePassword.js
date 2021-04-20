@@ -3,7 +3,6 @@ import { Col, Input, Button,Card,CardBody,FormGroup,Form} from "reactstrap"
 import { connect } from "react-redux"
 import {changepassword} from "../../redux/actions/auth/loginActions"
 import {Lock,Settings} from "react-feather"
-import { jwt_de } from "../../redux/actions/auth/index"
 import {history} from "../../history"
 
 class ChangePassword extends React.Component{
@@ -39,21 +38,16 @@ class ChangePassword extends React.Component{
             return;
         }
 
-        if(this.state.current_pass !== jwt_de(this.props.users.values.password)){
-            this.setState({ cisValid: false });
-        }else{
-            if(this.state.confirm_pass !== this.state.new_pass){
-                this.setState({ nisValid: false })
-                this.setState({ fisValid: false })
-            }else{
-                var user = {
-                    email : this.props.users.values.email,
-                    password : this.state.new_pass
-                }
-                this.props.changepassword(user);
-                this.setState({new_pass:"",current_pass : "",confirm_pass : ""});
-            }
+        if(this.state.confirm_pass !== this.state.new_pass){
+            alert("Please input correct password and confirmpassword");
+            return;
         }
+        this.props.changepassword({password : this.state.confirm_pass,currentpassword: this.state.current_pass});
+        this.setState({
+            currentpassword : '',
+            password : '',
+            confirmpassword : '',
+        })
     }
 
     reset(){

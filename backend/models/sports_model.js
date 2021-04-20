@@ -1,29 +1,31 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const basecontroller = require("../controller/basecontroller")
 
-var ListSchema = new Schema({
-    sport_id        : { type : String , required : true },
+
+const ListSchema = new Schema({
+    sport_id        : { type : Number , required : true },
+    image        : { type : String , default : "" },
     sport_name      : { type : String , required : true },
     viewBox         : { type : String , default : "" },
     icon            : { type : String , default : "" },
     color           : { type : String , default : "" },
-    category_len    : { type : Number , required : true },
     order           : { type : Number , default : 0 },
-    category        : { type : Array , required : true },
     status          : { type : Boolean , default : false },
+    isdelete          : { type : Boolean , default : false },
 });
 
-var BetSchema = new Schema({
+const BetSchema = new Schema({
     GAMEID          : { type : String , required : true },
-    USERID          : { type : String , required : true },
-    LAUNCHURL       : { type : String , required : true }, 
-    TYPE            : { type : String , default : "BET" },
+    gameid          : { type : Schema.Types.ObjectId , ref: 'sports_list' },
+    USERID          : { type: Schema.Types.ObjectId, ref: 'user_users'},
     AMOUNT          : { type : Number , required : true },
+    TYPE            : { type : String , default : "BET" },
     betting         : { type : Object , required : true },
-    DATE            : { type : Date , default : Date.now },
+    DATE            : { type : Date ,  },
 });
 
-var OddSchema = new Schema({
+const OddSchema = new Schema({
     event_id        : { type : String , default : "" },
     event_name      : { type : String , default : "" },
     sportid         : { type : String , default : "" },
@@ -39,19 +41,30 @@ var OddSchema = new Schema({
     produceStatus   : { type : Boolean , default : true },
 });
 
-var TimeSchema = new Schema({
+const TimeSchema = new Schema({
     key             : { type : String , required : true },
     timestamp       : { type : String },
+    produceStatus       : { type : Boolean },
 });
 
-var TestSchema = new Schema({
-    data            : { type : Object , default : {} }
+const FeaturesEvents = new Schema({
+    gameid : {
+        type: Schema.Types.ObjectId, ref: 'sports_list',
+    },
+    order : {
+        type : Number,
+        default : 0
+    },
+});
+
+BetSchema.pre('save', function() {
+    this.set({ DATE: basecontroller.Indiatime() });
 });
 
 module.exports = {
-    sports_list : mongoose.model('sports_list', ListSchema),
-    user_bet : mongoose.model('sports_bethistory', BetSchema),
-    odds_change : mongoose.model('sports_oddsChange', OddSchema),
-    sporttemp : mongoose.model('sports_timestamp', TimeSchema),
-    sporttest : mongoose.model("sports_test" , TestSchema)
+    sportsTypeList : mongoose.model('sports_list', ListSchema),
+    sportsOdds : mongoose.model('sports_oddsChange', OddSchema),
+    sportsBet : mongoose.model('sports_bethistory', BetSchema),
+    sportsTemp : mongoose.model('sports_timestamp', TimeSchema),
+    FeaturesEvents : mongoose.model('sports_featuresEvents', FeaturesEvents),
 }

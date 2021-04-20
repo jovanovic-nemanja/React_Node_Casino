@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const basecontroller = require("../controller/basecontroller")
+
 
 const documentModel = ()=>{
     var  UserSchema = new Schema({
@@ -9,7 +11,11 @@ const documentModel = ()=>{
         name          : { type : String,  default : '' },
         verifyId      : { type : String,  default : '' },
         status      : { type : String,  default :  0 },
-        date          : { type : Date,    default: Date.now },
+        date          : { type : Date,     },
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("profile_documentModel", UserSchema)
 }
@@ -42,8 +48,11 @@ const pro_notification = ()=>{
         },
         date: {
             type: Date,
-            default: Date.now
         },
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("profile_notification", UserSchema)
 }

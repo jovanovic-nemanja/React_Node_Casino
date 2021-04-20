@@ -70,7 +70,7 @@ class VerticalLayout extends PureComponent {
         ? document.body.classList.add("dark-layout")
         : layout === "semi-dark"
         ? document.body.classList.add("semi-dark-layout")
-        : null;
+        : document.body.classList.add("light-layout");
     }
   }
 
@@ -86,15 +86,24 @@ class VerticalLayout extends PureComponent {
     if (this.mounted) {
       if (layout === "dark") {
         document.body.classList.remove("semi-dark-layout");
+        document.body.classList.remove("light-layout");
         document.body.classList.add("dark-layout");
       }
       if (layout === "semi-dark") {
         document.body.classList.remove("dark-layout");
+        document.body.classList.remove("light-layout");
         document.body.classList.add("semi-dark-layout");
       }
-      if (layout !== "dark" && layout !== "semi-dark") {
-        document.body.classList.remove("dark-layout", "semi-dark-layout");
+      
+      if (layout === "light") {
+        document.body.classList.remove("semi-dark-layout");
+        document.body.classList.remove("dark-layout");
+        document.body.classList.add("light-layout");
       }
+
+      // if (layout !== "dark" && layout !== "semi-dark") {
+      //   document.body.classList.remove("dark-layout", "semi-dark-layout");
+      // }
 
       if (
         prevProps.app.customizer.sidebarCollapsed !==

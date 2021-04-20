@@ -21,7 +21,7 @@ export class Footer extends Component {
       <p className="mb-0 clearfix">
         <span className="float-md-left d-block d-md-inline-block mt-25">
           {
-            cms.cmsfootertext ? cms.cmsfootertext : "-----------"
+            cms.cmsfootertext ? cms.cmsfootertext : ""
           }
         {/* COPYRIGHT © {new Date().getFullYear()}
           <a

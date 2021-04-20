@@ -1,22 +1,14 @@
-export const Root = 
-  process.env.NODE_ENV === "development" ?
-    {
-      adminurl: "http://localhost:3000/admin/",
-      socket : null,
-      imageurl : "https://cms.pokergrid.io/uploads/",
-      homepagedomain : "http://localhost:3000",
-      admindomain : "http://localhost:3000",
-      token : "admin_poker_token",
-    }
-      :
-    {
-      adminurl: "https://cms.pokergrid.io/admin/",
-      socket : null,
-      imageurl : "https://cms.pokergrid.io/uploads/",
-      homepagedomain : "https://pokergrid.io",
-      admindomain : "https://cms.pokergrid.io",
-      token : "admin_poker_token",
-    }
 
-export const prefix = "poker-"
-export const appprefix = "poker-"
+const local = {
+  adminurl: "http://localhost:1998/admin/",
+  socket : null,
+  imageurl  : 'https://cms.kasagames.com/uploads/',
+  appurl  : 'https://cms.fairbets.co/apps/',
+  homepagedomain : "http://localhost:1998",
+  admindomain : "http://localhost:1998",
+  token : "player_fairbets_token",
+  prefix : "fair"
+}
+
+
+export const Root = local

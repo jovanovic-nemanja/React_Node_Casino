@@ -1,7 +1,0 @@
-export const permissionload = "USERSPERMISSIONLOAD";
-export const permissionget = "USERSPERMISSIONGET"
-export const permissionfilter = "USERSPERMISSIONFILTER"
-
-export const REQUESTPAYOUT_GET = "REQUESTPAYOUT_GET"
-export const REQUESTPAYOUT_FILTER = "REQUESTPAYOUT_FILTER"
-export const REQUESTPAYOUT_PAGENATIONS = "REQUESTPAYOUT_PAGENATIONS"

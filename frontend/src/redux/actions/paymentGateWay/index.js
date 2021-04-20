@@ -1,114 +1,70 @@
-import {AXIOS_REQUEST, set_page} from "../auth/index"
+import {AXIOS_REQUEST,alert, Set_reducer} from "../auth/index"
 import { toast } from "react-toastify"
 
 export const PaymentconfigLoad = type => {
-    return  async(dispatch) => {
-      var rdata = await AXIOS_REQUEST("paymentGateWay/PaymentconfigLoad",{type})
-          if(rdata.status){
-              dispatch({ type: "PAYMENTMENU_CONFIG_DATA", data: rdata.data })
-          }else{
-              toast.error(rdata.data);
-          }
+  return  async(dispatch) => {
+    var rdata = await AXIOS_REQUEST("paymentGateWay/paymentConfigLoad",{type})
+    if(rdata.status){
+        dispatch({ type: "PAYMENTMENU_CONFIG_DATA", data: rdata.data })
+    }else{
+        toast.error(rdata.data);
     }
+  }
 }
   
 export const PaymentconfigSave = params => {
-    return  async(dispatch) => {
-      var rdata = await AXIOS_REQUEST("paymentGateWay/PaymentconfigSave",{params})
-      if(rdata.status){
-          toast.success(rdata.data);   
-      }else{
-          toast.error(rdata.data);   
-      }
+  return  async(dispatch) => {
+    var rdata = await AXIOS_REQUEST("paymentGateWay/paymentConfigSave",{params})
+    if(rdata.status){
+      toast.success(rdata.data);   
+    }else{
+      toast.error(rdata.data);   
     }
+  }
 }
 
-export const QpayCheckOut = params => {
-    return  async(dispatch) => {
-        if(!params.email){
-            toast.error('email undefined');   
-        }else{
-            var rdata = await AXIOS_REQUEST("paymentGateWay/QpayCheckOut",{params})
-                if(rdata.status){
-                    dispatch({ type: "PAYMENTGATEWAY_QPAY_CHEKOUT_DATA", data: rdata });
-                }else{
-                    toast.error(rdata.data);   
-                }
-        }
-    }
-}
 
-export const QpayResults = order_no => {
-    return  async(dispatch) => {
-      var rdata = await AXIOS_REQUEST("paymentGateWay/QpayResults",{order_no})
-          if(rdata.status){
-              dispatch({ type: "PAYMENTGATEWAY_QPAY_RESULTS_DATA", data: rdata.data })
-          }else{
-              toast.error(rdata.data);   
-          }
-    }
+function reduxload(rdata,dispatch) {
+  dispatch({
+    type: "PAYMENTMENU_GET_OPTIONS",
+    typeoptions : rdata.typeoptions
+  });
 }
-
 
 export const getData = (params) => {
   return  async (dispatch) => {
-    var rdata = await AXIOS_REQUEST("paymentGateWay/menuload",{})
+    var rdata = await AXIOS_REQUEST("paymentGateWay/adminmenuload",{params})
     if(rdata.status){
-      var rows = set_page(params,rdata);
-      var fdata =rows['fdata'];
-      var totalPages = rows['totalPages'];
-      dispatch({ type: "PAYMENTMENU_GET_ALL_DATA", data: rdata.data })
-      dispatch({
-        type: "PAYMENTMENU_GET_DATA",
-        data: fdata,
-        totalPages:totalPages,
-        params
-      })
+      reduxload(rdata,dispatch)
+      Set_reducer(dispatch,params,rdata,"PAYMENTMENU_GET_DATA")
     }else{
       toast.error("fail")
     }
   }
 }
 
-export const filterData = value => {
-  return dispatch => dispatch({ type: "PAYMENTMENU_FILTER_DATA", value })
-}
 
 
-export const menudelete = (value,params)=>{
+export const menudelete = (data,params)=>{
   return async(dispatch)=>{
-    var rdata = await AXIOS_REQUEST("paymentGateWay/menudelete",{data : value})
+    var rdata = await AXIOS_REQUEST("paymentGateWay/menudelete",{data,params},dispatch,true)
       if(rdata.status){
-        var rows = set_page(params,rdata);
-        var fdata =rows['fdata'];
-        var totalPages = rows['totalPages'];
-        dispatch({ type: "PAYMENTMENU_GET_ALL_DATA", data: rdata.data })
-        dispatch({
-          type: "PAYMENTMENU_GET_DATA",
-          data: fdata,
-          totalPages:totalPages,
-          params
-        })
-        }else{
-          toast.error("fail")
-        }
+        alert("success","success")
+        reduxload(rdata,dispatch)
+        Set_reducer(dispatch,params,rdata,"PAYMENTMENU_GET_DATA")
+      }else{
+        toast.error("fail")
+      }
   }
 }
 
 export const menusave =(data,params)=>{
     return async(dispatch)=>{
-      var rdata = await AXIOS_REQUEST("paymentGateWay/menusave",{data : data})
+      var rdata = await AXIOS_REQUEST("paymentGateWay/menusave",data,dispatch,true)
         if(rdata.status){
-          var rows = set_page(params,rdata);
-          dispatch({ type: "PAYMENTMENU_GET_ALL_DATA", data: rdata.data })
-          var fdata =rows['fdata'];
-          var totalPages = rows['totalPages'];
-          dispatch({
-          type: "PAYMENTMENU_GET_DATA",
-          data: fdata,
-          totalPages:totalPages,
-          params
-          })
+          alert("success","success")
+          reduxload(rdata,dispatch)
+          Set_reducer(dispatch,params,rdata,"PAYMENTMENU_GET_DATA")
         }else{
           toast.error("fail")
         }
@@ -116,20 +72,13 @@ export const menusave =(data,params)=>{
 }
 
 
-export const menuupdate = (datas,params)=>{
+export const menuupdate = (data,params)=>{
     return async(dispatch)=>{
-      var rdata = await AXIOS_REQUEST("paymentGateWay/menuupdate",{data : datas})
+      var rdata = await AXIOS_REQUEST("paymentGateWay/menuupdate",{data,params},dispatch,true)
         if(rdata.status){
-          var rows = set_page(params,rdata);
-          var fdata =rows['fdata'];
-          dispatch({ type: "PAYMENTMENU_GET_ALL_DATA", data: rdata.data })
-          var totalPages = rows['totalPages'];
-          dispatch({
-              type: "PAYMENTMENU_GET_DATA",
-              data: fdata,
-              totalPages:totalPages,
-              params
-          })
+          alert("success","success")
+          reduxload(rdata,dispatch)
+          Set_reducer(dispatch,params,rdata,"PAYMENTMENU_GET_DATA")
         }else{
           toast.error("fail")
         }

@@ -1,4 +1,7 @@
 {
-    "TESTDB":"mongodb://localhost:27017/pokergrid",
-    "ServerPort" : "3000"
+    "TESTDB":"mongodb://localhost:27017/prokasino9",
+    "ServerPort" : "1998",
+    "host" : "localhost",
+    "auth_pass" : "",
+    "port" : "6379"
 }

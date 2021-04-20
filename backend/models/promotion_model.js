@@ -1,73 +1,122 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const basecontroller = require("../controller/basecontroller")
+
 
 const BonusMenumodel = () =>{
     var  UserSchema = new Schema({
-        bonusname : {
+        bonusid : {
             type : String,
-            required : true
+            required : true,
         },
-        order : {
+        Bonusname : {
+            type : String,
+            required : true,
+        },
+      
+        max : {
             type : Number,
             required : true,
-            unique : true
+        },
+        min : {
+            type : Number,
+            required : true,
+        },
+        timeline : {
+            type : Number,
+            required : true,
+        },
+        percent : {
+            type : Number,
+            required : true,
+        },
+        wager : {
+            type : Number,
+            required : true,
         },
         status : {
             type : Boolean,
             default :false
         },
-        maxdeposit : {
-            type : Number,
-            required : true
-        },
-        mindeposit : {
-            type : Number,
-            required : true
-        },
-        Wageringreq : {
-            type : Number,
-            required : true
-        },
-        startdate : {
-            type : Date,
-            required : true
-        },
-        enddate : {
-            type : Date,
-            required : true
-        },
         date: {
             type: Date,
-            default: Date.now
         },
+        comment : {
+            type : String,
+            default : true
+        },
+        isdelete : {
+            type : Boolean,
+            default :false
+        },
+       
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("promotion_bonusmodel", UserSchema)
 }
 
 const BonusHistory = () =>{
     var  UserSchema = new Schema({
-        bonusid : {
-            type : String,
-            required  : true 
-        },
-        email : {
-            type : String,
-            required : true
-        },
+        bonusid : { type: Schema.Types.ObjectId, ref: 'promotion_bonusmodel' },
+        userid : { type: Schema.Types.ObjectId, ref: 'user_users' },
+        status : {type : String , require : true},// 0 => pending 1 => approved 2 => declined 
+        createdAt: { type: Date,  },
+        expiredAt: { type: Date,  },
         amount : {
-            type : String,
-            required : true
+            type : Number,
+            required : true,
         },
-        date: {
-            type: Date,
-            default: Date.now
+        lastbalance : {
+            type : Number,
+            required : true,
         },
+        updatedbalance : {
+            type : Number,
+            required : true,
+        },
+        walletbalance : {
+            type : Number,
+            required : true,
+        }
     });
-    return mongoose.model("bonus_history_model", UserSchema)
+
+    UserSchema.pre('save', function() {
+        this.set({ expiredAt: basecontroller.Indiatime() });
+        this.set({ createdAt: basecontroller.Indiatime() });
+    });
+    UserSchema.pre('find', function () {
+        this.populate('bonusid');
+       
+    });
+
+    return mongoose.model("promotion_bonushistory", UserSchema)
 }
 
 
+const BonusConfig = () =>{
+    var  UserSchema = new Schema({
+        type : {
+            type : String,
+            required : true,
+        },
+        bonusid : { type: Schema.Types.ObjectId, ref: 'promotion_bonusmodel' },
+        status : {
+            type : Boolean,
+            default :false
+        },
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
+    });
+    return mongoose.model("promotion_config", UserSchema)
+}
+
 module.exports ={
     BonusMenumodel : BonusMenumodel(),
-    BonusHistory : BonusHistory()
+    BonusHistory : BonusHistory(),
+    BonusConfig : BonusConfig()
 }

@@ -1,3 +1,5 @@
+import * as AcionTypes from "../../../redux/types"
+
 const initialState = {
     logoimg: null,
     trackingcode: null,
@@ -8,9 +10,19 @@ const initialState = {
 
 export const firstpagesetting = (state = initialState, action) => {
     switch (action.type) {
-      case "FirstpageSetting_logo": {
+      case AcionTypes.FirstPageSettingLogo: {
         return { ...state, logoimg: action.data }
       }
+
+      case AcionTypes.FirstpageSetting_cmsfootertext :{
+        return { ...state, cmsfootertext : action.data}
+      }
+      
+      case "FirstpageSetting_signupbuttonhandle" :{
+        return { ...state, signupbuttonhandle: action.data }
+      }
+      
+      
       case "FirstpageSetting_Favicon" :{
         return { ...state, favicon : action.data}
       }
@@ -20,9 +32,7 @@ export const firstpagesetting = (state = initialState, action) => {
       case "FirstpageSetting_footertext" :{
         return { ...state, footertext : action.data}
       }
-      case "FirstpageSetting_cmsfootertext" :{
-        return { ...state, cmsfootertext : action.data}
-      }
+      
       case "FirstpageSetting_title" :{
         return { ...state, title : action.data}
       }
@@ -46,6 +56,7 @@ export const firstpagesetting = (state = initialState, action) => {
           paymentmethodimgs : action.data.payment,
           providerimgs : action.data.provider,
           cmsfootertext : action.data.cmsfootertext,
+          signupbuttonhandle : action.data.signupbuttonhandle
         }
       }
       default: {

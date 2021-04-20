@@ -6,7 +6,7 @@ import {connect} from "react-redux"
 import {toast} from "react-toastify"
 import {currency, language} from "../../../redux/actions/auth/currency"
 import {signup,updatesignup} from "../../../redux/actions/user/index"
-import {status_options,gender, playerid} from "../../../configs/providerconfig"
+import {status_options,gender, playerid,signup_device} from "../../../configs/providerconfig"
 import {get_userinfor} from "../../../redux/actions/auth/loginActions"
 import {validateUsername} from "../../../redux/actions/auth/index"
 
@@ -34,37 +34,18 @@ class DataListSidebar extends Component {
     status : status_options[1].value,
     cashdesk : "",
     permission : "",
-    // created : this.props.admin_info.email,
     resident : false,
     test : false,
     usingloyaltyprogram : false,
     subscribedtoemail : false,
     subscribedtosms : false,
     positiontaking : 0,
-    operatorID : ""
+    signup_device : signup_device[0].value,
   }
   componentDidMount(){
     this.props.get_userinfor();
   }
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps !== this.props) {
-      var permissionObj = {};
-      for (let i = 0; i < this.props.permission.length; i++) {
-        permissionObj[this.props.permission[i].label] = this.props.permission[i].value;
-      }
-      for (let i = 0; i < this.props.permission.length; i++) {
-        if (this.props.permission[i].value === this.props.userdetail.permission) {
-          var permission_label = this.props.permission[i].label;
-          if (permission_label === "superadmin") {
-            this.setState({permission: permissionObj['Super agent']})
-          } else if (permission_label === "Super agent") {
-            this.setState({permission: permissionObj['super Master']})
-          } else if (permission_label === "super Master") {
-            this.setState({permission: permissionObj['agent']})
-          }
-        }
-      }
-    }
     if (this.props.data !== null && prevProps.data === null) {
       var data = this.props.data;
       this.setState({
@@ -95,7 +76,8 @@ class DataListSidebar extends Component {
         subscribedtoemail : data.subscribedtoemail,
         subscribedtosms : data.subscribedtosms,
         positiontaking : data.positiontaking,
-      });
+        signup_device :data.signup_device,
+      })
     }
     if (this.props.data === null && prevProps.data !== null) {
       this.setState({
@@ -126,17 +108,17 @@ class DataListSidebar extends Component {
         usingloyaltyprogram : false,
         subscribedtoemail : false,
         subscribedtosms : false,
-        positiontaking : this.props.userdetail ?  this.props.userdetail.positiontaking : 0
+        positiontaking : this.props.userdetail ?  this.props.userdetail.positiontaking : 0,
+        signup_device : signup_device[0].value,
+
       })
     }
+
   }
 
   handleregister = e =>{
     e.preventDefault();
-    
-    var row = {...this.state};
-
-    this.props.handleSidebar(false, true);
+    var row = this.state;
     if(this.state.permission === ""){
       toast.error("Please select Permission .")
       return;
@@ -145,10 +127,13 @@ class DataListSidebar extends Component {
       if(!usernamecheck){
         return;
       }
+      
+      this.props.handleSidebar(false, true);
       if(this.props.data !== null){
         delete row.password;
         this.props.updatesignup(row,this.props.dataParams,this.props.me.value);
       }else{
+        delete row._id;
         this.props.signup(row,this.props.dataParams,this.props.me.value);
       }
     }
@@ -294,6 +279,7 @@ class DataListSidebar extends Component {
                       onChange={e=>this.setState({email : e.target.value})}
                       value = {this.state.email}
                       required
+                      disabled={this.props.data !== null ? true : false}
                   />
                 </FormGroup>
               </Col>
@@ -333,7 +319,7 @@ class DataListSidebar extends Component {
                     className="form-control"
                     value={this.state.birthday}
                     onChange={date => {
-                      this.setState({ birthday : date.toString() });
+                      this.setState({ birthday : date.toJSON() });
                     }}
                   />
                 </FormGroup>
@@ -380,7 +366,21 @@ class DataListSidebar extends Component {
                   />
                 </FormGroup>
               </Col>
-
+              <Col md="4" sm="12">
+                <FormGroup>
+                  <Label for="signupDevice">signupDevice</Label>
+                  <Select
+                    className="React"
+                    classNamePrefix="select"
+                    id="signupDevice"
+                    name="signupDevice"
+                    options={signup_device}
+                    value={signup_device.find(obj => obj.value === this.state.signup_device)}
+                    defaultValue={signup_device[0]}
+                    onChange={e => this.setState({ signup_device: e.value })}
+                  />
+                </FormGroup>
+              </Col>
               <Col md="4" sm="12">
                 <FormGroup>
                   <Label for="cashdesk">Cashdesk</Label>
@@ -390,9 +390,9 @@ class DataListSidebar extends Component {
                   />
                 </FormGroup>
               </Col>
-              {/* <Col md="4" sm="12">
+              <Col md="4" sm="12">
                 <FormGroup>
-                  <Label for="account"> Permission </Label> */}
+                  <Label for="account"> Permission </Label>
                   {/* {
                     this.props.data !== null ?
                     <Input type="text"  placeholder="Cashdesk" name="permission"
@@ -400,7 +400,7 @@ class DataListSidebar extends Component {
                     onChange={e=>this.setState({permission : e.target.value})}
                     disabled={true}
                     /> :  */}
-                  {/* <Select
+                  <Select
                     className="React"
                     classNamePrefix="select"
                     id="permission"
@@ -408,10 +408,10 @@ class DataListSidebar extends Component {
                     options={this.props.permission}
                     required           
                     onChange={e => this.setState({ permission: e.value })}
-                  /> */}
+                  />
                   {/* } */}
-                {/* </FormGroup>
-              </Col> */}
+                </FormGroup>
+              </Col>
               {
                 this.state.permission !== playerid ?
                 <Col md="4" sm="12">
@@ -429,17 +429,6 @@ class DataListSidebar extends Component {
                   </FormGroup>
                 </Col>  : ""
               }
-
-              <Col md="4" sm="12">
-                <FormGroup>
-                  <Label for="operatorID">Operator ID</Label>
-                  <Input type="text" name="operatorID" id="operatorID" placeholder="Operator ID"
-                      value = {this.state.operatorID}
-                      onChange={e=>this.setState({operatorID : e.target.value})}
-                      required
-                  />
-                </FormGroup>
-              </Col>
          
               <Col md="4" sm="12">
                 <FormGroup className='mt-2'>

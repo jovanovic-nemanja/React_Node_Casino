@@ -24,6 +24,8 @@ export const firstpage_load = () =>{
     }
 }
 
+
+
 export const Logoload = () => {
     return async(dispatch)=>{
         var saveHandle = await AXIOS_REQUEST("cms/logoimg_load");

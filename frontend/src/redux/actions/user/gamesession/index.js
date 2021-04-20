@@ -1,22 +1,14 @@
 import {AXIOS_REQUEST} from "../../auth/index"
 import { toast } from "react-toastify";
-import {set_page} from "../../auth/index"
+import {Set_reducer} from "../../auth/index"
 
 export const getData = (params,date) => {
   return  async(dispatch) => {
-    if(date.length === 2){
+    if(date && date.length === 2){
       var rdata = await AXIOS_REQUEST("players/gamesrealtimeusers",{start : date[0],end : date[1]})
         if(rdata.status){
-          var rows =  set_page(params,rdata);
-          var fdata = rows['fdata'];
-          var totalPages = rows['totalPages'];
-            dispatch({
-              type: "GAMESESSIonREALTIME_GET_DATA",
-              data: fdata,
-              totalPages:totalPages,
-              params,
-              allData :rdata.data,count : rdata.count
-            })
+          Set_reducer(dispatch,params,rdata,"GAMESESSIonREALTIME_GET_DATA")
+
         }else{
           toast.error("fail")
         }
@@ -32,16 +24,8 @@ export const deleteRow = (value,params)=>{
   return async(dispatch)=>{
     var rdata = await AXIOS_REQUEST("players/gamesrealtimeusersdelete",{email : value.email})
       if(rdata.status){
-        var rows =  set_page(params,rdata);
-        var fdata = rows['fdata'];
-        var totalPages = rows['totalPages'];
-          dispatch({
-            type: "GAMESESSIonREALTIME_GET_DATA",
-            data: fdata,
-            totalPages:totalPages,
-            params,
-            allData :rdata.data
-          })
+        Set_reducer(dispatch,params,rdata,"GAMESESSIonREALTIME_GET_DATA")
+
       }else{
 
       }
@@ -50,12 +34,10 @@ export const deleteRow = (value,params)=>{
 
 export const pagenationchange = (params,data)=>{
   return (dispatch,getState)=>{
-    var row = {
+    var row = { 
       data : getState().userslist.sessionusers.allData
     }
-    var rows =  set_page(params,row)
-    var fdata = rows['fdata'];
-    var totalPages = rows['totalPages'];
-    dispatch({ type:"GAMESESSIonREALTIME_PAGENATION",data: fdata,totalPages:totalPages,params})
+    Set_reducer(dispatch,params,row,"GAMESESSIonREALTIME_GET_DATA")
+
   }
 }

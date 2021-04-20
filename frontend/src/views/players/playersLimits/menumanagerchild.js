@@ -7,10 +7,10 @@ import { ChevronDown,  ChevronLeft,  ChevronRight,Edit,Edit2} from "react-feathe
 import { connect } from "react-redux"
 import {getData,filterData,menuupdate,pagenationchange} from "../../../redux/actions/Players/playerlimit/index"
 import Select from "react-select"
-import Flatpickr from "react-flatpickr";
-import {currency} from "../../../redux/actions/auth/currency"
-import {selectedStyle,gender,test,pagenation_set} from "../../../configs/providerconfig"
-import {Root,prefix,appprefix} from "../../../authServices/rootconfig"
+import {selectedStyle,gender,pagenation_set} from "../../../configs/providerconfig"
+import {Root} from "../../../authServices/rootconfig"
+import DatePicker from "../../lib/datepicker"
+const prefix = Root.prefix;
 
 const ActionsComponent = props => {
   return (
@@ -25,181 +25,63 @@ const ActionsComponent = props => {
 }
 
 const FilterComponent = props => {
-
+  let state = props.state.filters;
   return (
     <div className='p-1 pt-2 pb-2'>
       <Row>
-        <Col lg='2' md='3' sm='6' xs='12'>
-            <FormGroup>
-              <Label for="Registration Date">Registration Date</Label>
-              <Flatpickr                
-                className="form-control"
-                options={{  mode: "range"  }}
-                onChange={e => props.handleFilter(e,"date")}
-              />
-            </FormGroup>
+        <Col  md='6' sm='6' xs='12'>
+          <FormGroup>
+            <Label for="Registration Date">Registration Date</Label>
+            <DatePicker onChange={e => props.handleFilter(e,"date")} />
+          </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Username</Label>
-            <Input  type="text"  placeholder="Enter UserName"onChange={e => props.handleFilter(e.target.value,"username")} />
+            <Input  type="text"  placeholder="Enter UserName" value={state.username} onChange={e => props.handleFilter(e.target.value,"username")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Player ID</Label>
-            <Input  type="number"  placeholder="Enter Player Id" onChange={e => props.handleFilter(e.target.value,"id")} />
+            <Input  type="number"  placeholder="Enter Player Id" value={state.id} onChange={e => props.handleFilter(e.target.value,"id")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="basicInput">Region</Label>
-            <Input  type="number"  placeholder="Enter Region" onChange={e => props.handleFilter(e.target.value,"region_name")} />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="Last Login Date">Last Login Date</Label>
-            <Flatpickr
-              value={new Date()}
-              className="form-control"
-              options={{  mode: "range"  }}
-              onChange={date => {
-              }}
-            />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="Verification Date">Verification Date</Label>
-            <Flatpickr
-              
-              data-enable-time
-              value={new Date()}
-              className="form-control"
-              options={{  mode: "range"  }}
-              onChange={date => {
-              }}
-            />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">First Name</Label>
-            <Input  type="text"  placeholder="Enter First Name"onChange={e => props.handleFilter(e.target.value,"firstname")} />
+            <Input  type="text"  placeholder="Enter First Name" value={state.firstname} onChange={e => props.handleFilter(e.target.value,"firstname")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Last Name</Label>
-            <Input  type="text"  placeholder="Enter Last Name"onChange={e => props.handleFilter(e.target.value,"lastname")} />
+            <Input  type="text"  placeholder="Enter Last Name" value={state.lastname} onChange={e => props.handleFilter(e.target.value,"lastname")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Address</Label>
-            <Input  type="text"  placeholder="Enter Address"onChange={e => props.handleFilter(e.target.value,"address")} />
+            <Input  type="text"  placeholder="Enter Address" value={state.address} onChange={e => props.handleFilter(e.target.value,"address")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="gender">Gender</Label>
-            <Select
-              
-              className="React"
-              classNamePrefix="select"
-              id="gender"
-              name="gender"
-              options={gender}
-              // value={gender.find(obj => obj.value)}
-              defaultValue={gender[0]}
-              onChange={e => props.handleFilter(e.value,"gender")}
-            />
+            <Select className="React" classNamePrefix="select" value={ gender.find( obj=>obj.value === state.gender ) } name="gender" options={gender} onChange={e => props.handleFilter(e.value,"gender")}  />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
             <Label for="basicInput">Email</Label>
-            <Input  type="text"  placeholder="Enter Email"onChange={e => props.handleFilter(e.target.value,"email")} />
+            <Input  type="text"  placeholder="Enter Email" value={state.email} onChange={e => props.handleFilter(e.target.value,"email")} />
           </FormGroup>
         </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
+        <Col  md='3' sm='6' xs='12'>
           <FormGroup>
-            <Label for="birthday">Birthday</Label>
-            <Flatpickr
-              
-              name="birthday" 
-              id="birthday"
-              className="form-control"
-              value={new Date()}
-              onChange={date => {
-                props.handleFilter(date,"birthday")
-              }}
-            />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="basicInput">Registration Source</Label>
-            <Input  type="text"  placeholder="Enter Registration Source"/>
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="currency">Currency</Label>
-            <Select 
-              
-              className="React"
-              classNamePrefix="select"
-              id="currency"
-              name="currency"
-              options={currency}
-              // value={currency.find(obj => obj.value)}
-              defaultValue={currency[0]}
-              onChange={e => props.handleFilter(e.value,"currency")}
-            />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="basicInput">Client Category</Label>
-            <Input  type="text"  placeholder="Enter Client Category"/>
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="basicInput">External ID</Label>
-            <Input  type="text"  placeholder="Enter External ID"/>
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="First Deposit Date">First Deposit Date</Label>
-            <Flatpickr
-              
-              data-enable-time
-              value={new Date()}
-              className="form-control"
-              options={{  mode: "range"  }}
-              onChange={date => {
-              }}
-            />
-          </FormGroup>
-        </Col>
-        <Col lg='2' md='3' sm='6' xs='12'>
-          <FormGroup>
-            <Label for="test">Is Test</Label>
-            <Select
-              
-              className="React"
-              classNamePrefix="select"
-              id="gender"
-              name="gender"
-              options={test}
-              // value={test.find(obj => obj.value)}
-              defaultValue={test[0]}
-              // onChange={e => props.handleFilter(e.value,"test")}
-            />
+            <Label for="basicInput">Mobile</Label>
+            <Input  type="text"  placeholder="Enter Mobile Number" value={state.mobilenumber} onChange={e => props.handleFilter(e.target.value,"mobilenumber")} />
           </FormGroup>
         </Col>
       </Row>
@@ -210,6 +92,7 @@ const FilterComponent = props => {
 
 
 const CustomHeader = props => {
+  let {totalRecords,sortIndex} = props.dataList;
   return (
     <div className='p-1 pt-2 pb-2'>
       <Row>
@@ -217,7 +100,7 @@ const CustomHeader = props => {
           <UncontrolledDropdown className="data-list-rows-dropdown d-block ">
             <DropdownToggle color="" className="sort-dropdown">
               <span className="align-middle mx-50">
-                {`${props.index[0] ? props.index[0] : 0} - ${props.index[1] ? props.index[1] : 0} of ${props.total}`}
+                {`${sortIndex[0]} - ${sortIndex[1]} of ${totalRecords}`}
               </span>
             <ChevronDown size={15} />
             </DropdownToggle>
@@ -282,8 +165,8 @@ class Child extends Component {
             minWidth: "70px",
             cell: row => (
               <div >
-                {row.userid.signup_device ? appprefix : prefix}{row.userid.fakeid}
-              </div>
+              { prefix + row.userid.signup_device} {"-"}{row.userid.fakeid}
+            </div>
             )
           },
           {
@@ -293,7 +176,7 @@ class Child extends Component {
             minWidth: "100px",
             cell : row =>(
               <>
-                {row.userid.avatar !== "" ? <img style={{width:"50px",height:"50px",backgroundSize:"100% 100%"}} src={Root.imageurl + row.userid.avatar} alt="" /> : ""}
+                { row.userid && row.userid.avatar !== "" ? <img style={{width:"50px",height:"50px",backgroundSize:"100% 100%"}} src={Root.imageurl + row.userid.avatar} alt="" /> : ""}
               </>  
             )
           },
@@ -304,7 +187,7 @@ class Child extends Component {
               minWidth: "10px",
               cell : row=>(
                   <div>
-                    {row.userid.firstname}
+                    {row.userid && row.userid.firstname ? row.userid.firstname : "" }
                   </div>
               )
           },
@@ -315,7 +198,7 @@ class Child extends Component {
               minWidth: "100px",
               cell : row=>(
                 <div>
-                  {row.userid.lastname}
+                  {row.userid && row.userid.lastname ? row.userid.lastname : ""}
                 </div>
               )
           },
@@ -326,7 +209,7 @@ class Child extends Component {
             minWidth: "220px",
             cell : row=>(
               <div>
-                {row.userid.email}
+                {row.userid && row.userid.email ? row.userid.email : ""}
               </div>
             )
           },
@@ -337,7 +220,7 @@ class Child extends Component {
             minWidth: "100px",
             cell : row=>(
               <div>
-                {row.userid.username}
+                {row.userid && row.userid.username ? row.userid.username : ""}
               </div>
             )
           },
@@ -367,7 +250,7 @@ class Child extends Component {
             minWidth: "100px",
             cell : row=>(
               <div>
-                {row.userid.mobilenumber}
+                { row.userid && row.userid.mobilenumber ? row.userid.mobilenumber : ""}
               </div>
             )
           },
@@ -379,7 +262,7 @@ class Child extends Component {
             cell: row => (
               <Badge
                 color="light-success" pill>
-               {row.userid.permissionid.title}
+               {row.userid && row.userid.permissionid.title ? row.userid.permissionid.title : ""}
               </Badge>
             )
           },
@@ -390,7 +273,7 @@ class Child extends Component {
             minWidth: "100px",
             cell : row=>(
               <div>
-                {row.userid.created}
+                { row.userid &&  row.userid.created ? row.userid.created  : ""}
               </div>
             )
           },
@@ -401,7 +284,7 @@ class Child extends Component {
             minWidth: "100px",
             cell : row=>(
               <div>
-                {row.userid.gender}
+                { row.userid && row.userid.gender ? row.userid.gender : ""}
               </div>
             )
           },
@@ -892,13 +775,22 @@ class Child extends Component {
         isChecked : false,
         tooltipOpen : false,
         filters : {
-          dates : [(new Date()-86400000),new Date()],
+          date : {
+            start :"",
+            end : ""
+          },
           username : "",
+          id : "",
+          region_name : "",
           email : "",
+          mobilenumber : "",
           firstname : "",
           lastname : "",
-          balance : 0,
-          id : ""
+          address : "",
+          gender : gender[0].value,
+          birthday : [new Date().toISOString()],
+          balance : "",
+          permission : ""
         }
     }
 
@@ -908,8 +800,10 @@ class Child extends Component {
 
 
     handleFilter = (value,bool) => {
-      this.setState({ value: value })
-      this.props.filterData(value,bool)
+      var filters = this.state.filters;
+      filters[bool] = value;
+      this.setState({ filters: filters });
+      this.props.filterData(value,bool, this.props.parsedFilter);
   }
 
     handleRowsPerPage = value => {
@@ -973,14 +867,17 @@ class Child extends Component {
       <> 
         <FilterComponent
           handleFilter={this.handleFilter}
+          {...this.props}
+          responsive
           handleRowsPerPage={this.handleRowsPerPage}
           rowsPerPage={rowsPerPage}
           total={totalRecords}
           handleSidebar={this.handleSidebar}
-          me={this.state}
-          index={sortIndex}
+          state={this.state}
+          {...this}
+          Filterapply={this.props.getData}
           parsedFilter={this.props.parsedFilter}
-          Filterapply = {this.props.getData}
+          index={sortIndex}
         />
       <div id="admindata_table" className={`data-list list-view`}>          
         <Modal isOpen={this.state.modal} toggle={this.toggleModal} className="modal-dialog-centered" >
@@ -1091,6 +988,7 @@ class Child extends Component {
             <CustomHeader
               handleFilter={this.handleFilter}
               handleRowsPerPage={this.handleRowsPerPage}
+              dataList={this.props.dataList}
               rowsPerPage={rowsPerPage}
               total={totalRecords}
               index={sortIndex}

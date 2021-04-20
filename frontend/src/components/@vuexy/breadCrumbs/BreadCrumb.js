@@ -61,41 +61,8 @@ class BreadCrumbs extends React.Component {
             </div>
           </div>
         </div>
-        <div className="col-md-1 col-12 d-flex font-weight-bold color-white text-center justify-content-center align-items-center">
-          {/* <div className="form-group breadcrum-right dropdown"> */}
+        <div className="col-md-1 col-12 d-flex font-weight-bold text-center justify-content-center align-items-center historyback">
             <CornerRightUp size={30} color="white" className="cursor-pointer" onClick={()=>this.event()} />
-            {/* <UncontrolledButtonDropdown>
-              <DropdownToggle
-                color="primary"
-                size="sm"
-                className="btn-icon btn-round dropdown-toggle"
-              >
-                <Settings
-                  size={14}
-                  style={{
-                    left: 0
-                  }}
-                />
-              </DropdownToggle>
-              <DropdownMenu tag="ul" right>
-                <DropdownItem tag="li">
-                  <NavLink className="text-dark w-100" to="/chat">
-                    Chat
-                  </NavLink>
-                </DropdownItem>
-                <DropdownItem tag="li">
-                  <NavLink className="text-dark w-100" to="/email/inbox">
-                    Email
-                  </NavLink>
-                </DropdownItem>
-                <DropdownItem tag="li">
-                  <NavLink className="text-dark w-100" to="/calendar">
-                    Calendar
-                  </NavLink>
-                </DropdownItem>
-              </DropdownMenu>
-            </UncontrolledButtonDropdown> */}
-          {/* </div> */}
         </div>
       </div>
     )

@@ -4,19 +4,36 @@ const bodyParser = require('body-parser');
 const config = require('../db');
 const cors = require('cors');
 const app = express();
-const server = require("http").Server(app);
-const io = require("socket.io").listen(server);
+// const fs = require('fs');
+// const certDIR = require("../../../../../dir")
+// console.log(certDIR.DIR + 'etc/pki/tls/cert.pem')
+
+// var options = {
+//   key: fs.readFileSync(certDIR.DIR +'etc/pki/tls/cert.pem').toString(),
+//   cert: fs.readFileSync(certDIR.DIR +'etc/pki/tls/private/hostname.pem').toString(),
+//   requestCert: true
+// };
+
+
+const server = require('http').Server( app);
+const io  = require('socket.io').listen(server);
+
 const SocketServer = require("../socket");
 const db = require("./db.json");
 const adminRouter = require("../router");
 const path = require("path");
-const main = require("./home.json")
+
+// const main = require("./home.json")
+// var redis = require('socket.io-redis');
+// io.origins("*:*")
+// io.adapter(redis({ host: '51.79.167.211', port: 6379 ,auth_pass : "Kiranku123$"}));
+// app.use(function(req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   next();
+// });
 
 app.use(cors());
-app.use("*",(req,res,next)=>{
-  res.cookie('cookie1', 'value1', { domain : main.admindomain , sameSite: 'lax',httpOnly : true ,expires : new Date(new Date().valueOf() + 30 * 24 * 60 * 60 * 1000),path : "/" });
-  next();
-});
 app.use(express.static('../clients'));
 app.use(express.static('../clients/builds'));
 app.use(express.static('../clients/uploads'));

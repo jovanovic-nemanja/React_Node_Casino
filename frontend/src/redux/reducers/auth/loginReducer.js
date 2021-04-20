@@ -41,10 +41,6 @@ export const login = (state =initdata, action) => {
     case "PROFILE_USER" : {
       return {...state,userdetail : action.data,values : action.data}
     }
-    
-    case "POKER_API_DATA" : {
-      return {...state, poker_api_data : action.data}
-    }
 
     default: {
       return state

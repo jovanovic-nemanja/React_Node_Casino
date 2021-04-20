@@ -77,60 +77,60 @@ exports.RazorpayResponse = async(req,res,next)=>{
 }
 
 exports.RazorpayWithdraw = async(req,res,next)=>{
-    var data = req.body
-    await WithdrawHistory.findOne({ "email": data.email, $or: [ { "status": "processing" }, { $or: [ { "status": "pending" } ] } ] }).then(async rdata =>{
-        if(!rdata){
-            await GamePlay.findOne({email:data.email}).then(async balanceData=>{
-                if(parseFloat(balanceData.balance)>parseFloat(data.amount)){
-                    var paymentMethodData = {
-                        email : data.email,
-                        type : data.type+'-'+data.bankType,
-                        paymentData : data
-                    }
-                    await PaymentMethod.findOne({type:paymentMethodData.type, email:paymentMethodData.email}).then(async paymentData =>{
-                        if(!paymentData){
-                            var savehandle = await BASECON.data_save(paymentMethodData, PaymentMethod)
-                            if(!savehandle){
-                                res.json({status : false,data : "fail"})
-                                return next()
-                            }else{
-                                var savehandle = await BASECON.data_save(data, WithdrawHistory)
-                                if(!savehandle){
-                                    res.json({status : false, data : "Failed"})
-                                    return next()
-                                }else{
-                                    res.json({status : true, data : "Success"})
-                                    return next()
-                                }
-                            }
-                        }else{
-                            await PaymentMethod.updateOne({ type:paymentMethodData.type, email:paymentMethodData.email }, {paymentData : data} ).then( async datas => {
-                                if(!datas){
-                                    res.json({ status : false, data: 'fail' })
-                                    return next()
-                                }else{
-                                    var savehandle = await BASECON.data_save(data, WithdrawHistory)
-                                    if(!savehandle){
-                                        res.json({status : false, data : "Failed"})
-                                        return next()
-                                    }else{
-                                        res.json({status : true, data : "Success"})
-                                        return next()
-                                    }
-                                }
-                            })
-                        }
-                    })
-                }else{
-                    res.json({status : false, data : "You cannot withdraw many than the balance amount."})
-                    return next()
-                }
-            })
-        }else{
-            res.json({status : false, data : "There has been a recent change to the withdrawal process, users are allowed to have only 1 pending withdrawal at a time. Please cancel and resubmit your withdrawal request."})
-            return next()
-        }
-    })
+    // var data = req.body
+    // await WithdrawHistory.findOne({ "email": data.email, $or: [ { "status": "processing" }, { $or: [ { "status": "pending" } ] } ] }).then(async rdata =>{
+    //     if(!rdata){
+    //         await GamePlay.findOne({email:data.email}).then(async balanceData=>{
+    //             if(parseFloat(balanceData.balance)>parseFloat(data.amount)){
+    //                 var paymentMethodData = {
+    //                     email : data.email,
+    //                     type : data.type+'-'+data.bankType,
+    //                     paymentData : data
+    //                 }
+    //                 await PaymentMethod.findOne({type:paymentMethodData.type, email:paymentMethodData.email}).then(async paymentData =>{
+    //                     if(!paymentData){
+    //                         var savehandle = await BASECON.data_save(paymentMethodData, PaymentMethod)
+    //                         if(!savehandle){
+    //                             res.json({status : false,data : "fail"})
+    //                             return next()
+    //                         }else{
+    //                             var savehandle = await BASECON.data_save(data, WithdrawHistory)
+    //                             if(!savehandle){
+    //                                 res.json({status : false, data : "Failed"})
+    //                                 return next()
+    //                             }else{
+    //                                 res.json({status : true, data : "Success"})
+    //                                 return next()
+    //                             }
+    //                         }
+    //                     }else{
+    //                         await PaymentMethod.updateOne({ type:paymentMethodData.type, email:paymentMethodData.email }, {paymentData : data} ).then( async datas => {
+    //                             if(!datas){
+    //                                 res.json({ status : false, data: 'fail' })
+    //                                 return next()
+    //                             }else{
+    //                                 var savehandle = await BASECON.data_save(data, WithdrawHistory)
+    //                                 if(!savehandle){
+    //                                     res.json({status : false, data : "Failed"})
+    //                                     return next()
+    //                                 }else{
+    //                                     res.json({status : true, data : "Success"})
+    //                                     return next()
+    //                                 }
+    //                             }
+    //                         })
+    //                     }
+    //                 })
+    //             }else{
+    //                 res.json({status : false, data : "You cannot withdraw many than the balance amount."})
+    //                 return next()
+    //             }
+    //         })
+    //     }else{
+    //         res.json({status : false, data : "There has been a recent change to the withdrawal process, users are allowed to have only 1 pending withdrawal at a time. Please cancel and resubmit your withdrawal request."})
+    //         return next()
+    //     }
+    // })
 }
 
 exports.RazorpayPayout = async(req,res,next)=>{

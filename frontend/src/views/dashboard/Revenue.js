@@ -1,13 +1,13 @@
 import React from "react"
 import StatisticsCard from "../../components/@vuexy/statisticsCard/StatisticsCard"
 import { Row, Col ,Button ,Card,Table } from "reactstrap"
-import Flatpickr from "react-flatpickr";
 import  * as FC from "react-icons/fc";
-import {get_revenus_load,get_user_load} from "../../redux/actions/dashboard/index"
+import {getRevenueLoad,getUserLoad} from "../../redux/actions/dashboard/index"
 import {connect} from "react-redux"
 import Select from "react-select"
 import { subscribersGained, subscribersGainedSeries } from "../ui-elements/cards/statistics/StatisticsData"
-import {Bazaartype} from "../../configs/providerconfig"
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import Datepicker from "../lib/datepicker"
 
 const day = 86400000;
 const Dates= new Date();
@@ -31,14 +31,8 @@ class Revenue extends React.Component {
   }
 
   componentDidMount(){
-    this.props.get_revenus_load(this.state.rangePicker,this.state.user);
-    this.props.get_user_load()
-  }
-
-  componentDidUpdate(prevProps, prevState){
-    if(this.props.data !== prevProps.data){
-        this.setState({data : this.props.data})
-    }
+    this.props.getRevenueLoad(this.state.rangePicker,this.state.user);
+    this.props.getUserLoad()
   }
 
   getdate(data){
@@ -80,288 +74,284 @@ class Revenue extends React.Component {
         break;
     }
     this.setState({rangePicker : [start,end],activeindex: data});
-    this.props.get_revenus_load([start,end],this.state.user)
+    this.props.getRevenueLoad([start,end],this.state.user)
   }
 
   datepickerChange(e){
-    if(e.length===2){
-      this.setState({rangePicker:e});
-      this.props.get_revenus_load(e,this.state.user)
-    }
+    let dates = [e.start,e.end];
+    this.setState({rangePicker:dates});
+    this.props.getRevenueLoad(dates,this.state.user)
   }
 
   muser_Change = (e) =>{
-    this.setState({ user: e.value });
-    this.props.get_revenus_load(this.state.rangePicker,{email :  e.value});
+    this.setState({ user: { email : e.value} });
+    this.props.getRevenueLoad(this.state.rangePicker,{email :  e.value});
   }
 
   render() {
+
     let {BET,WIN,given,receive,MakingDeposits,MakingWithdrawals,playersLoggedIn,totallogincount,betindex,
       playersRegistered,playersBalance,Profit,playersMakingDeposit,playersMakingWithdrawals,playersBonusBalance,playersagentBalance,positiontaking,matka} = this.props.data ? this.props.data : null;
     return (
       <React.Fragment>
         {
-          this.props.useritem ? 
-        <React.Fragment>     
-          <Row className="ecommerecedashboard">
-            {
-              dataArray.map((item,i)=>{
-                return (
-                <Col md="2" sm="6" key={i}>
-                  <Card><Button color="info" className={this.state.activeindex === item.index ? "revenubuttonactive" : "" } outline onClick={()=>this.getdate(item.index)}>{item.title}</Button></Card>
+          this.props.useritem && BET !== null && MakingDeposits !== null && positiontaking !== null? 
+          <React.Fragment>     
+            <Row className="ecommerecedashboard">
+              {
+                dataArray.map((item,i)=>{
+                  return (
+                  <Col md="2" sm="6" key={i}>
+                    <Card><Button color="info" className={this.state.activeindex === item.index ? "revenubuttonactive" : "" } outline onClick={()=>this.getdate(item.index)}>{item.title}</Button></Card>
+                  </Col>
+                  )
+                })
+              }
+              <Col md="6" sm="12" >
+                <Select className="React" classNamePrefix="select" options={this.props.musers}
+                  value={this.props.musers.find(obj => obj.value === this.state.user)}
+                  onChange={e => this.muser_Change(e)}
+                  defaultValue={[ {label :this.props.useritem.email,value : this.props.useritem.email}]}
+                />
+              </Col>
+              <Col md="6" sm="12" >
+                <Datepicker onChange={date => {this.datepickerChange(date)}} />
+              </Col>
+            </Row>
+            <Col md="12" sm="12" className="mt-1">
+              <Row >
+                <Col lg="3" md="6" sm="12">
+                  <StatisticsCard
+                    hideChart
+                    iconRight
+                    iconBg="primary"
+                    icon={<FC.FcProcess className="primary" size={22} />}
+                    stat={MakingDeposits ? parseInt(MakingDeposits) :0}
+                    statTitle="Total of deposits"
+                  />
                 </Col>
-                )
-              })
-            }
-            <Col md="6" sm="12" >
-              <Select className="React" classNamePrefix="select" options={this.props.musers}
-                value={this.props.musers.find(obj => obj.value === this.state.user)}
-                onChange={e => this.muser_Change(e)}
-                defaultValue={[ {label :this.props.useritem.email,value : this.props.useritem.email}]}
-              />
-            </Col>
-            <Col md="6" sm="12" >
-              <Card >
-                <Flatpickr
-                  value={this.state.rangePicker}
-                  className="form-control"
-                  options={{  mode: "range"  }}
-                  onChange={date => {this.datepickerChange(date)}}
-                />
-              </Card>
-            </Col>
-          </Row>
-          <Col md="12" sm="12">
-            <Row >
-             
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="primary"
-                icon={<FC.FcProcess className="primary" size={22} />}
-                stat={MakingDeposits ? parseInt(MakingDeposits) :0}
-                statTitle="Total of deposits"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="success"
-                icon={<FC.FcRemoveImage className="success" size={22} />}
-                stat={MakingWithdrawals ?parseInt(MakingWithdrawals) :0}
-                statTitle="Total of Withdrawals"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-              <StatisticsCard
-                  icon={<FC.FcMoneyTransfer className="success" size={22} />}
-                  stat={BET}
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                    hideChart
+                    iconRight
+                    iconBg="success"
+                    icon={<FC.FcRemoveImage className="success" size={22} />}
+                    stat={MakingWithdrawals ?parseInt(MakingWithdrawals) :0}
+                    statTitle="Total of Withdrawals"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                  <StatisticsCard
+                      icon={<FC.FcMoneyTransfer className="success" size={22} />}
+                      stat={BET}
+                      hideChart
+                      iconRight
+                      statTitle="Total Bet Amount"
+                      type="area"
+                      options={subscribersGained}
+                      series={subscribersGainedSeries}
+                  />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                  <StatisticsCard
+                      icon={<FC.FcMoneyTransfer className="danger" size={22} />}
+                      stat={WIN}
+                      hideChart
+                      iconRight
+                      statTitle="Total win Amount"
+                      type="area"
+                      options={subscribersGained}
+                      series={subscribersGainedSeries}
+                  />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                    hideChart
+                    iconRight
+                    iconBg="warning"
+                    icon={<FC.FcProcess className="warning" size={22} />}
+                    stat={Profit ? Profit : 0}
+                    statTitle="Net Profit of Platform "
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                  <StatisticsCard
                   hideChart
                   iconRight
-                  statTitle="Total Bet Amount"
-                  type="area"
-                  options={subscribersGained}
-                  series={subscribersGainedSeries}
-              />
-          </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                    icon={<FC.FcMoneyTransfer className="danger" size={22} />}
-                    stat={WIN}
+                  iconBg="danger"
+                  icon={<FC.FcCustomerSupport className="danger" size={22} />}
+                  stat={betindex ?betindex :0}
+                  statTitle="Total Number of bets"
+                  />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
                     hideChart
                     iconRight
-                    statTitle="Total win Amount"
-                    type="area"
-                    options={subscribersGained}
-                    series={subscribersGainedSeries}
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcProcess className="warning" size={22} />}
-                stat={Profit ? parseInt(Profit) : 0}
-                statTitle="Net Profit of Platform "
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="danger"
-                icon={<FC.FcCustomerSupport className="danger" size={22} />}
-                stat={betindex ?betindex :0}
-                statTitle="Total Number of bets"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="danger"
-                icon={<FC.FcCustomerSupport className="danger" size={22} />}
-                stat={playersLoggedIn ?playersLoggedIn :0}
-                statTitle="Players Logged In"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcConferenceCall className="warning" size={22} />}
-                stat={totallogincount ? totallogincount  : 0}
-                statTitle="Total login count"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="success"
-                icon={<FC.FcContacts className="warning" size={22} />}
-                stat={playersRegistered ? playersRegistered : 0}
-                statTitle="Players Registered"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="danger"
-                icon={<FC.FcCurrencyExchange className="warning" size={22} />}
-                stat={playersBalance ? parseInt(playersBalance) : 0}
-                statTitle="Players Balance"
-                />
-            </Col>
-           
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcDebt className="warning" size={22} />}
-                stat={playersMakingDeposit ? playersMakingDeposit : 0}
-                statTitle="Players Marking Deposits"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcDataRecovery className="warning" size={22} />}
-                stat={playersMakingWithdrawals ? playersMakingWithdrawals : 0}
-                statTitle="Players Making Withdrawals"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcPlus className="warning" size={22} />}
-                stat={playersBonusBalance ? parseInt(playersBonusBalance) : 0}
-                statTitle="Bonus Balance"
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                hideChart
-                
-                iconRight
-                iconBg="warning"
-                icon={<FC.FcMoneyTransfer className="warning" size={22} />}
-                stat={playersagentBalance ? parseInt(playersagentBalance) : 0}
-                statTitle="Agent Balance"
-                />
-            </Col>
+                    iconBg="danger"
+                    icon={<FC.FcCustomerSupport className="danger" size={22} />}
+                    stat={playersLoggedIn ?playersLoggedIn :0}
+                    statTitle="Players Logged In"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                  <StatisticsCard
+                  hideChart
+                  iconRight
+                  iconBg="warning"
+                  icon={<FC.FcConferenceCall className="warning" size={22} />}
+                  stat={totallogincount ? totallogincount  : 0}
+                  statTitle="Total login count"
+                  />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                    hideChart
+                    iconRight
+                    iconBg="success"
+                    icon={<FC.FcContacts className="warning" size={22} />}
+                    stat={playersRegistered ? playersRegistered : 0}
+                    statTitle="Players Registered"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                    hideChart
+                    iconRight
+                    iconBg="danger"
+                    icon={<FC.FcCurrencyExchange className="warning" size={22} />}
+                    stat={playersBalance ? parseInt(playersBalance) : 0}
+                    statTitle="Players Balance"
+                    />
+                </Col>
             
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                    icon={<FC.FcMoneyTransfer className="warning" size={22} />}
-                    stat={receive}
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
                     hideChart
                     iconRight
-                    statTitle="Total Receice"
-                    type="area"
-                    options={subscribersGained}
-                    series={subscribersGainedSeries}
-                />
-            </Col>
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                    icon={<FC.FcMoneyTransfer className="warning" size={22} />}
-                    stat={given}
+                    iconBg="warning"
+                    icon={<FC.FcDebt className="warning" size={22} />}
+                    stat={playersMakingDeposit ? playersMakingDeposit : 0}
+                    statTitle="Players Marking Deposits"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
                     hideChart
                     iconRight
-                    statTitle="Total Given"
-                    type="area"
-                    options={subscribersGained}
-                    series={subscribersGainedSeries}
-                />
-            </Col> 
-            <Col lg="3" md="6" sm="12">
-                <StatisticsCard
-                    icon={<FC.FcMoneyTransfer className="warning" size={22} />}
-                    stat={positiontaking ? positiontaking : 0 + "%"}
+                    iconBg="warning"
+                    icon={<FC.FcDataRecovery className="warning" size={22} />}
+                    stat={playersMakingWithdrawals ? playersMakingWithdrawals : 0}
+                    statTitle="Players Making Withdrawals"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
                     hideChart
                     iconRight
-                    statTitle="Position Taking"
-                    type="area"
-                    options={subscribersGained}
-                    series={subscribersGainedSeries}
-                />
-            </Col> 
-  
-            {
-                matka && Object.keys(matka).length > 0 ?
-                <Table responsive bordered >
-                <thead >
-                  <tr>
-                    <th>Bazar Name </th>
-                    <th>Number of Bets </th>
-                    <th>Total Bet amount</th>
-                    <th>Total Win  amount</th>
-                    <th>Net profit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {
-                    Object.keys(matka).map((item,i)=>(
-                    <tr key={i}>
-                      <td>{Bazaartype[item]}</td>
-                      <td>{matka[item].COUNT}</td>
-                      <td>{matka[item].BET}</td>
-                      <td>{matka[item].WIN}</td>
-                      <td>{matka[item].PROFIT}</td>
+                    iconBg="warning"
+                    icon={<FC.FcPlus className="warning" size={22} />}
+                    stat={playersBonusBalance ? parseInt(playersBonusBalance) : 0}
+                    statTitle="Bonus Balance"
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                    hideChart
+                    
+                    iconRight
+                    iconBg="warning"
+                    icon={<FC.FcMoneyTransfer className="warning" size={22} />}
+                    stat={playersagentBalance ? parseInt(playersagentBalance) : 0}
+                    statTitle="Agent Balance"
+                    />
+                </Col>
+              
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                        icon={<FC.FcMoneyTransfer className="warning" size={22} />}
+                        stat={receive}
+                        hideChart
+                        iconRight
+                        statTitle="Total Receice"
+                        type="area"
+                        options={subscribersGained}
+                        series={subscribersGainedSeries}
+                    />
+                </Col>
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                        icon={<FC.FcMoneyTransfer className="warning" size={22} />}
+                        stat={given}
+                        hideChart
+                        iconRight
+                        statTitle="Total Given"
+                        type="area"
+                        options={subscribersGained}
+                        series={subscribersGainedSeries}
+                    />
+                </Col> 
+                <Col lg="3" md="6" sm="12">
+                    <StatisticsCard
+                        icon={<FC.FcMoneyTransfer className="warning" size={22} />}
+                        stat={positiontaking ? positiontaking : 0 + "%"}
+                        hideChart
+                        iconRight
+                        statTitle="Position Taking"
+                        type="area"
+                        options={subscribersGained}
+                        series={subscribersGainedSeries}
+                    />
+                </Col> 
+              {
+                  matka && (matka).length > 0 ?
+                  <Table responsive bordered >
+                  <thead >
+                    <tr>
+                      <th>Bazar Name </th>
+                      <th>Number of Bets </th>
+                      <th>Total Bet amount</th>
+                      <th>Total Win  amount</th>
+                      <th>Total pending amount</th>
+                      <th>Total Void</th>
+                      <th>Net profit</th>
                     </tr>
-                    ))
-                  }
-                
-                </tbody>
-                </Table> : null
-              }
-            </Row>
-          </Col>
-        </React.Fragment> : null
+                  </thead>
+                  <tbody>
+                    {
+                      (matka).map((item,i)=>(
+                      <tr key={i}>
+                        <td>{item.bazarname}</td>
+                        <td>{item.count}</td>
+                        <td>{item.lost}</td>
+                        <td>{item.win}</td>
+                        <td>{item.pending}</td>
+                        <td>{item.cancel}</td>
+                        <td>{item.GGR}</td>
+                      </tr>
+                      ))
+                    }
+                  </tbody>
+                  </Table> : null
+                }
+              </Row>
+            </Col>
+          </React.Fragment> 
+        :
+          <SkeletonTheme  color="#10163a" highlightColor="#444">
+            <Skeleton count={20} />
+          </SkeletonTheme>
         }
-
       </React.Fragment>
     )
   }
 }
 
 const mapstops = (state)=>{
-  return {data : state.dashboard.Revenue.data,
+  return {data : state.dashboard.Revenue,
     useritem : state.auth.login.values,
     musers : state.dashboard.Revenue.musers
   }
 }
 
-export default connect(mapstops,{get_revenus_load,get_user_load})(Revenue)
+export default connect(mapstops,{getRevenueLoad,getUserLoad})(Revenue)

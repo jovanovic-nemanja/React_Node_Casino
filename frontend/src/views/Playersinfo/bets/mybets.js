@@ -1,69 +1,62 @@
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import { Col,Row,Badge,Label} from "reactstrap"
+import React, { Component } from "react"
+import {UncontrolledDropdown,  DropdownMenu,  DropdownToggle,DropdownItem,Col,Row, Label,Badge,
+} from "reactstrap"
 import DataTable from "react-data-table-component"
-import {reports_email_load} from "../../../redux/actions/profileinfo/index"
-import Datepicker from "../../lib/datepicker";
+import ReactPaginate from "react-paginate"
+import { history } from "../../../history"
+import { ChevronDown,  ChevronLeft,  ChevronRight} from "react-feather"
+import { connect } from "react-redux"
+import {selectedStyle,pagenation_set} from "../../../configs/providerconfig"
+import {reports_email_load} from "../../../redux/actions/profileinfo"
+import Datepicker from "../../lib/datepicker"
+import {dateConvert} from "../../../redux/actions/auth"
+
 
 const CustomHeader = props => {
+  let {totalRecords,sortIndex} = props.dataList;
   return (
-      <Row className="font-weight-bold">
-          <Col sm="12" md="12" className="mb-1">
-            <Datepicker onChange={date => { props.setDate([date.start,date.end]) }} />
+    <div className='p-1 pt-2 pb-2'>
+    <Row>
+        <Col xs='6' className='justify-content-start align-items-center flex' md="3">
+            <UncontrolledDropdown className="data-list-rows-dropdown d-block ">
+            <DropdownToggle color="" className="sort-dropdown">
+                <span className="align-middle mx-50">
+                {`${sortIndex[0]} - ${sortIndex[1]} of ${totalRecords}`}
+                </span>
+            <ChevronDown size={15} />
+            </DropdownToggle>
+            <DropdownMenu tag="div" right>
+            {
+                pagenation_set.map((item,i)=>(
+                <DropdownItem tag="a" key={i} onClick={() => props.handleRowsPerPage(item)}>{item} </DropdownItem>
+                ))
+            }
+            </DropdownMenu>
+            </UncontrolledDropdown>
         </Col>
-        {
-          props.result ? 
-          <>
-            <Col sm="12" md="3">
-              <div>
-                Total Deposit
-              </div>
-              <Label>
-                {props.result.totaldeposit}
-              </Label>
-            </Col>
-            <Col sm="12" md="3">
-              <div>
-                Total Bet
-              </div>
-              <Label>
-                {props.result.totalbet}
-              </Label>
-            </Col>
-            <Col sm="12" md="3">
-              <div>
-                Total Win
-              </div>
-              <Label>
-              {props.result.totalwin}
-              </Label>
-            </Col>
-            <Col sm="12" md="3">
-              <div>
-              Net balance 
-              </div>
-              <Label>
-              {props.result.currentwalletbalance}
-              </Label>
-            </Col>
-          </>
-          :null
-        }
-      </Row>
+        <Col  md='6' sm='12' xs='12'>
+          <Label for="Registration Date">Select Date</Label> 
+          <Datepicker  onChange={date => { props.datechange(date) }} />
+        </Col>
+         
+    </Row>
+  </div>
   )
 }
 
-export class child extends Component {
-  state = {
-    columns: [
-        {
+class AccountStatement extends Component {
+
+    state = {
+        data: [],
+        columns: [
+          {
             name: "PROVIDERID",
-            selector: "PROVIDERID",
+            selector: "gameid.PROVIDERID",
             sortable: true
           },
           {
             name: "NAME",
-            selector: "NAME",
+            selector: "gameid.NAME",
             sortable: true
           },
           {
@@ -120,52 +113,115 @@ export class child extends Component {
             sortable: true,
             cell: row => (
               <span>
-                {(new Date(row.DATE)).toLocaleString((new Date()).getTimezoneOffset(),{hour12 : false}).replace(",", "")}
+                {dateConvert(row.DATE)}
               </span>
             )
           },
-    ],
-    value: "",
-    filteredData: [],
-    date : [
-      new Date(),
-      new Date(new Date().valueOf() + 24 * 60 * 60 * 1000),
-    ]
-  }
-
-    componentDidMount(){
-        this.props.reports_email_load( { email:this.props.user.email,start: this.state.date[0],end: this.state.date[1],})
+            
+        ],
+        date : {
+            start : new Date(),
+            end : new Date(new Date().valueOf() + 24 * 60 * 60 * 1000),
+        }
     }
 
-  
-  render() {
+    componentDidMount(){
+      console.log(this.props)
+        // this.props.reports_email_load(this.state.date,this.props.user,this.props.parsedFilter)
+    }
 
-    let { columns} = this.state;
-    let {data,result} = this.props.mybets;
+   
+
+    handlePagination = page => {
+      let { parsedFilter, reports_email_load } = this.props;
+      let perPage = parsedFilter.perPage !== undefined ? parsedFilter.perPage : pagenation_set[0];
+      let urlPrefix =`${history.location.pathname}`;
+      let row = this.props.user;
+      history.push( `${urlPrefix}?page=${page.selected + 1}&perPage=${perPage}`,row);
+      var params = { page: page.selected + 1, perPage: perPage };
+      reports_email_load(this.state.date,this.props.user,params);
+    }
+
+    componentDidUpdate(preveProps,prevState){
+      if(preveProps.dataList !== this.props.dataList){
+        let datalist = this.props.dataList;
+        this.setState({
+          data : datalist.data,
+          totalPages: datalist.totalPages,
+        })
+      }
+    }
+
+    handleRowsPerPage = value => {
+      let { parsedFilter, reports_email_load } = this.props
+      let page = parsedFilter.page !== undefined ? parsedFilter.page : 1;
+      let row = this.props.user;
+      history.push(`${history.location.pathname}?page=${page}&perPage=${value}`,row)
+      var params = { page: page, perPage: value };
+      reports_email_load(this.state.date,this.props.user,params);
+    }
+
+    change = (e) => {
+        console.log(e,this)
+        this.setState({date : e});
+        this.props.reports_email_load(e,this.props.user,this.props.parsedFilter)
+    }
+
+
+    render() {
+    let { columns,data,totalPages} = this.state
     return (
-        <div id="admindata_table"  className={`data-list list-view`} >
-          <CustomHeader 
-            date={this.state.date}
-            setDate={(e)=>this.props.reports_email_load({email:this.props.user.email,start:e[0],end: e[1]})}
-            result={result}
+      <React.Fragment>
+        <div id="admindata_table" className={`data-list list-view`}>
+          <DataTable
+            columns={columns}
+            data={data}
+            pagination
+            paginationServer
+            paginationComponent={() => (
+                <ReactPaginate
+                  previousLabel={<ChevronLeft size={15} />}
+                  nextLabel={<ChevronRight size={15} />}
+                  breakLabel="..."
+                  breakClassName="break-me"
+                  pageCount={totalPages}
+                  containerClassName="vx-pagination separated-pagination pagination-end pagination-sm mb-0 mt-2"
+                  activeClassName="active"
+                  forcePage={ this.props.parsedFilter.page ? parseInt(this.props.parsedFilter.page - 1) : 0 }
+                  onPageChange={page => this.handlePagination(page)}
+                />
+            )}
+            noHeader
+            subHeader
+            responsive
+            pointerOnHover
+            selectableRowsHighlight
+            customStyles={selectedStyle}
+            subHeaderComponent={
+              <CustomHeader
+                handleRowsPerPage={this.handleRowsPerPage}
+                dataList={this.props.dataList}
+                datechange={(e)=>this.change(e)}
+                add={()=>this.setState({modal : !this.state.modal , update : false , type : "" , accountName : ""})}
+              />
+            }
+            sortIcon={<ChevronDown />}
           />
-          <DataTable data={data} columns={columns} 
-          noHeader
-          pagination
-          paginationPerPage={4}
-          paginationRowsPerPageOptions={[5]}
-        />
-      </div>
+        </div>
+
+        
+      </React.Fragment>
     )
   }
 }
 
 const mapStateToProps = (state) => ({
-  mybets : state.profileinfo.mybets
+    dataList :  state.profileinfo.mybets
 })
 
 const mapDispatchToProps = {
-    reports_email_load
+  reports_email_load
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(child)
+export default connect(mapStateToProps, mapDispatchToProps)(AccountStatement)
+

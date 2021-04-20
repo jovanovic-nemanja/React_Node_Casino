@@ -1,4 +1,3 @@
-import {getIndex} from "../../actions/auth/index"
 
 const initialState = {
     data: [],
@@ -16,30 +15,13 @@ const initialState = {
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex(
-            action.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
-          allData: action.allData,
-          totalRecords: action.allData.length,
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
-      case "SETTING_PROCREDENTILA_SETPAGENATION":
-        return {
-          ...state,
-          data: action.data,
-          totalPages: action.totalPages,
-          params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
-        }
+    
 
       case  "SETTING_PROCREDENTIAL_EDIT" :
         return{

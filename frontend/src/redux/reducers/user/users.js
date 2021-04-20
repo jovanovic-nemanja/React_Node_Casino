@@ -1,4 +1,4 @@
-import {getIndex} from "../../actions/auth/index"
+import {set_page} from "../../actions/auth/index"
 
 const initialState = {
     data: [],
@@ -7,7 +7,7 @@ const initialState = {
     totalPages: 0,
     filteredData: [],
     totalRecords: 0,
-    sortIndex: []
+    sortIndex: [0,0],
   }
   
 export  const users = (state = initialState, action) => {
@@ -16,32 +16,25 @@ export  const users = (state = initialState, action) => {
         return {
           ...state,
           data: action.data,
-          allData : action.allData,
+          allData : action.alldata,
           totalPages: action.totalPages,
-          totalRecords: action.allData.length,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex( action.allData, action.data, state.sortIndex, action.params )
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
-      case "USER_SET_PAGENATION":
-        return {
-          ...state,
-          data: action.data,
-          totalPages: action.totalPages,
-          params: action.params,
-          sortIndex: getIndex( state.allData, action.data, state.sortIndex, action.params )
-        }
+     
       case "USER_FILTER_DATA":
         let value = (action.value);
         let bool = (action.bool).toString();
         let data = [];
-        if (value.length) {
+        if (value.length || Object.keys(value).length > 0) {
           data = state.allData.filter(item => {
             let startsWithCondition = false;
             let includesCondition = false;
             if(bool === "date"){
               var date = new Date(item.date);
-              var date1 = new Date(value[0]);
-              var date2 = new Date(value[1]);
+              var date1 = new Date(value.start);
+              var date2 = new Date(value.end);
               if(date >= date1 && date <= date2){
                 startsWithCondition = true;
                 includesCondition = true;
@@ -61,10 +54,14 @@ export  const users = (state = initialState, action) => {
               return includesCondition
             } else return null
           }).slice(state.params.page - 1, state.params.perPage)
-          return { ...state, data }
+          let row = Object.assign({},{status : true , data : data});
+          let rows = set_page(action.params, row)
+          return {...state, data: rows["fdata"], totalPages:rows["totalPages"], params : rows["params"], totalRecords: data.length, sortIndex: [rows["params"]["skip"] + 1,rows["params"]["skip2"]] }
         } else {
-          data = state.data
-          return { ...state, data }
+          data = state.allData
+          let row = Object.assign({},{status : true , data : data});
+          let rows = set_page(action.params, row)
+          return {...state, data: rows["fdata"], totalPages:rows["totalPages"], params : rows["params"], totalRecords: data.length, sortIndex: [rows["params"]["skip"] + 1,rows["params"]["skip2"]] }
         }
     
       default:

@@ -7,7 +7,6 @@ import { connect } from "react-redux"
 import {signupWithJWT} from "../../../redux/actions/auth/registerActions"
 import { getDataAgain } from "../../../redux/actions/user/permission"
 import { Input,FormGroup ,Col,Row} from "reactstrap"
-import captchapng from 'captchapng';
 import {toast} from "react-toastify"
 import {Mail,Unlock} from "react-feather"
 
@@ -65,7 +64,6 @@ class Login extends React.Component {
   }
 
   UNSAFE_componentWillMount(){
-    this.captchaImg();
     if(localStorage.getItem('remember')){
       var users = localStorage.getItem("remember");
       users = JSON.parse(users);
@@ -129,17 +127,7 @@ class Login extends React.Component {
     }
   }
 
-  captchaImg(){
-    var captchanumber = parseInt(Math.random()*9000+1000);
-    var p = new captchapng(80,30,captchanumber);
-    p.color(115, 95, 197, 100);
-    p.color(30, 104, 21, 255);
-    var img1 = p.getBase64();
-    var imgbase64 = new Buffer(img1,'base64');
-    var img = "data:image/jpeg;base64,"+new Buffer(imgbase64).toString('base64');
-    this.setState({captchapng:img});
-    this.setState({captchanumber:captchanumber});
-  }
+
   
   componentDidUpdate(prevProps, prevState){
     if(prevProps.iplocation !== this.props.iplocation){

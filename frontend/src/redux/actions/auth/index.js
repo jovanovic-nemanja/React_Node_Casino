@@ -1,45 +1,94 @@
 import * as loginAction from "./loginActions"
 import { Root} from "../../../authServices/rootconfig"
-import jwt from "jwt-simple"
 import { history } from "../../../history"
 import axios from "axios"
 import {key_providers} from "../../../configs/providerconfig"
 import { toast } from "react-toastify";
-import {LOGIN_URL} from "../../../urls"
+import {LoginUrl} from "../../../urls"
+import addNotification from 'react-push-notification';
 
 export default loginAction
 
-export const getIndex = (arr, arr2, arr3, params = {}) =>{
-	if (arr2.length > 0) {
-		let startIndex = arr.findIndex(i => i._id === arr2[0]._id) + 1
-		let endIndex = arr.findIndex(i => i._id === arr2[arr2.length - 1]._id) + 1
-		let finalArr = [startIndex, endIndex]
-		return (arr3 = finalArr)
+
+export const dateConvert = (date) => {
+	// 2021-03-28T00:29:02.157Z
+	if (date && date.length) {
+		let dd = date.slice(5,7) + "/" + date.slice(8 ,10) + "/" + date.slice(0,4) + " " + date.slice(11,19)
+		return dd
 	} else {
-		let finalArr = [arr.length - parseInt(params.perPage), arr.length]
-		return (arr3 = finalArr)
+		return new Date().toString()
 	}
 }
 
+
+export const Onlydate = (date) => {
+	// 2021-03-28T00:29:02.157Z
+	if (date && date.length) {
+		let dd = date.slice(5,7) + "/" + date.slice(8 ,10) + "/" + date.slice(0,4)
+		return dd
+	} else {
+		return new Date().toString()
+	}
+}
+
+export const notification = (allnoti) => {
+	addNotification({
+		title: allnoti.title,
+		subtitle: "",
+		message: allnoti.body,
+		theme: 'darkblue',
+		native: true // when using native, your OS will handle theming.
+	  });
+}
+
+// export const getIndex = (arr, arr2, arr3, params = {}) =>{
+// 	if (arr2.length > 0) {
+// 		let startIndex = arr.findIndex(i => i._id === arr2[0]._id) + 1
+// 		let endIndex = arr.findIndex(i => i._id === arr2[arr2.length - 1]._id) + 1
+// 		let finalArr = [startIndex, endIndex]
+// 		return (arr3 = finalArr)
+// 	} else {
+// 		let finalArr = [arr.length - parseInt(params.perPage), arr.length]
+// 		return (arr3 = finalArr)
+// 	}
+// }
+
 export const get_date  =(time) =>{
 	var times = time.split(":");
-	if(times.length >= 1){
-		if(parseInt(times[0]) > 12){
+	if (times.length >= 1){
+		
+		if (parseInt(times[0]) > 12) {
 			let time =convert ((parseInt(times[0]) - 12 )) + ":" +  convert(times[1]) + " PM";
 			return time;
-		}else{
+		} else if ( parseInt(times[0]) === 12 ){
+			let time = "12:00 PM";
+			return time
+		} else {
 			let time = convert(parseInt(times[0]))+":" + convert(times[1])  + "  AM";
 			return time
 		}
 	}
 	function convert(number){
-        if(parseInt(number) > 9){
+        if (parseInt(number) > 9) {
             return number
-        }else{
+        } else {
             return "0" + parseInt(number)
         }
     }
 }
+
+export const get_options = (timers) => {
+	var closetime = parseInt((timers.closetime).split(":")[0]);
+	var opentime = parseInt(timers.opentime.split(":")[0]);
+	var lasttime = timers.opentime.split(":")[1];
+	var options = [];
+	for (var i = opentime ; i <= closetime ; i++) {
+		let item = get_date(i + ":" + lasttime);
+		options.push(item);
+	} 
+	return options;
+}
+
 
 export const  get_timestring =(time) =>{
 	var hours = time.getHours();
@@ -51,7 +100,7 @@ export const  get_GGR_value =  (item) =>{
 	var totalbet =  item.BET ? item.BET : 0;
 	var totalwin =  item.WIN ? item.WIN : 0;
 	var totalcancel_bet =  item.CANCEL_BET ? item.CANCEL_BET : 0;
-	var totalGGr = (totalbet - totalwin - totalcancel_bet).toFixed(2);
+	var totalGGr = (totalbet - totalwin - totalcancel_bet).toFixed(0);
 	return totalGGr;
 }
 
@@ -60,7 +109,7 @@ export const get_total_ggr_value = (data) =>{
 	for(var i = 0 ; i < data.length ; i++){
 		totalNum += parseFloat(get_GGR_value(data[i]));
 	}
-	return totalNum.toFixed(2);
+	return totalNum.toFixed(0);
 }
 
 export const get_total_value = (bool,data) =>{
@@ -68,20 +117,25 @@ export const get_total_value = (bool,data) =>{
 	for(var i = 0 ; i < data.length; i ++){
 		totalNum += data[i][bool] ? data[i][bool] : 0;
 	}
-	return totalNum.toFixed(2);
+	return totalNum.toFixed(0);
 }
 
 export const Set_reducer = (dispatch,params,rdata,type) =>{
-	var rows = set_page(params,rdata);
-	var fdata =rows['fdata'];
+	// var rows = set_page(params,rdata);
+	// var fdata =rows['fdata'];
+	// var totalPages = rows['totalPages'];
+	// dispatch({
+	//   type: type,
+	//   data: fdata,
+	//   totalPages:totalPages,
+	//   params : rows['params'],
+	//   allData : rdata.data
+	// })
+
+	var rows =  set_page(params,rdata);
+	var fdata = rows['fdata'];
 	var totalPages = rows['totalPages'];
-	dispatch({
-	  type: type,
-	  data: fdata,
-	  totalPages:totalPages,
-	  params,
-	  allData : rdata.data
-	})
+	dispatch({ type: type,data: fdata,totalPages:totalPages,params : rows['params'],alldata : rdata.data});
 }  
 
 export const select_string = (bool)=>{
@@ -195,47 +249,58 @@ export const sessioninfor = ()=>{
 }
 
 
-
-export const jwt_ed = (string) =>{
-	return jwt.encode(string,"admin");
-}
-
-export const jwt_de = (string) =>{
-	return jwt.decode(string,"admin");
-}
-
 export const fake_session = () =>{
 	localStorage.removeItem(Root.token);
+}
+export const alert = (string,type) =>{
+	if(string && string.length > 0){
+
+		switch(type){
+			case "success" :
+				toast.success(string);
+			break;
+			case "warn" :
+				toast.warn(string);
+			break;
+			case "error" :
+				toast.error(string);
+			break;
+			default : 
+				toast.error(string);
+			break;
+		}
+		return;
+	}
 }
 
 export const set_page = (params,rdata)=>{
 	let { page, perPage } = params;
-	let totalPages = Math.ceil(rdata.data.length / perPage);
 	let fdata = [];
 	let newparams = {};
 	if (page !== undefined && perPage !== undefined) {
+		var totalPages = Math.ceil(rdata.data.length / perPage);
 		let calculatedPage = (page - 1) * perPage;
-		let calculatedPerPage = page * perPage;
 	  	if(calculatedPage > rdata.data.length){
-			totalPages = Math.ceil(rdata.data.length / perPage);
-			fdata = rdata.data.slice(0, perPage);
-			newparams['page'] = 0;
-			newparams['perPage'] = perPage;
+			newparams['page'] = 1;
+			newparams['perPage'] = parseInt(perPage);
 		}else{
-			fdata = rdata.data.slice(calculatedPage, calculatedPerPage);
-			newparams = params;
+			newparams['perPage'] = parseInt(perPage);
+            newparams['page'] = parseInt(page);
 		}
 	}else {
 		totalPages = Math.ceil(rdata.data.length / 10);
-		fdata = rdata.data.slice(0, 10);
-		newparams = params;
+        newparams['page'] = 1;
+        newparams['perPage'] = 10;
 	}
-	if(fdata.length === 0){
-		newparams['page'] = 0;
-		newparams['perPage'] = 10;
-		fdata = rdata.data.slice(0, 10);
-	}
-	return {fdata : fdata,totalPages : totalPages,params : newparams}
+    let index1 = newparams.page === 0 ? 0 : newparams.page - 1; 
+    let index2 = newparams.page === 0 ? 1 : newparams.page;
+    let skip = index1 * (newparams.perPage);
+    let limit = index2 * (newparams.perPage);
+	fdata = rdata.data.slice(skip, limit);
+	let skip2 = (skip) + fdata.length;
+	newparams['skip'] = skip;
+	newparams['skip2'] = skip2;
+	return {fdata : fdata,totalPages : totalPages,params : newparams,skip  : skip ,limit : limit,skip2 : skip2}
 }
 
 export const instance = axios.create({
@@ -265,7 +330,7 @@ export const AXIOS_REQUEST =async (url,inputdata,dispatch,loading) =>{
 		if(Response.data){
 			if(Response.data.session){
 				fake_session();
-				window.location.assign(LOGIN_URL);
+				window.location.assign(LoginUrl);
 			}else{
 				return Response.data
 			}
@@ -296,9 +361,9 @@ export const instance_file = axios.create({
     timeout: 150000000,
     headers: {
 		authorization: `${sessioninfor()}`,
-		// session : `${getSession()._id}`,
-      "Content-Type": "application/json",
-      "device": window.innerWidth,
+		"Content-Type": "application/json",
+		"device": window.innerWidth,
+		"user-device" : "web",
     },
 });
 

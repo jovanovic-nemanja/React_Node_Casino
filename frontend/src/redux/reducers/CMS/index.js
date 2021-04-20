@@ -7,6 +7,8 @@ import { FirstPageGameSetting } from "./FirstPage_game_setting"
 import { sports } from "./sports"
 import { exchg } from "./exchg"
 import { profilemenu } from "./profilemenu"
+import { topgames } from "./topgames"
+import {featuresEvent} from "./featuresEvent"
 
 const cms = combineReducers({
   fpMng,
@@ -16,7 +18,10 @@ const cms = combineReducers({
   sports,
   exchg,
   FirstPageGameSetting,
-  profilemenu
+  profilemenu,
+  topgames,
+  featuresEvent,
+
 })
 
 export default cms

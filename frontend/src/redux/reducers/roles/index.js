@@ -1,5 +1,4 @@
-import {ROLES_GET_DATA,ROLES_GET_FILTER_DATA,ROLES_GET_ALL_DATA,ROLES_DATA} from "../../types/permission";
-import {getIndex} from "../../actions/auth/index"
+import {ROLES_GET_DATA,ROLES_GET_FILTER_DATA,ROLES_DATA} from "../../types";
 
 const initialState = {
     data: [],
@@ -18,14 +17,11 @@ const initialState = {
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          )
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
       
       case ROLES_DATA :
@@ -34,13 +30,7 @@ const initialState = {
           rolesdata : action.roles
         }
 
-      case ROLES_GET_ALL_DATA:
-        return {
-          ...state,
-          allData: action.data,
-          totalRecords: action.data.length,
-          sortIndex: getIndex(action.data, state.data, state.sortIndex)
-        }
+     
       case ROLES_GET_FILTER_DATA:
         let value = action.value
         let filteredData = []

@@ -1,16 +1,13 @@
 const users_model = require("../models/users_model");
-const sessionmodel = users_model.sessionmodel;
+const sessionmodel = users_model.usersessionmodel;
 const gamesessionmodel = users_model.gamesessionmodel;
-const balance_histoy = users_model.balance_histoy;
 const playersUser = users_model.GamePlay;
 const Users = users_model.adminUser;
 const totalusermodel = users_model.totalusermodel;
 const totalgamesusermodel = users_model.totalgamesusermodel;
 const wallethistory = users_model.wallethistory;
 const {TransactionsHistory} = require("../models/paymentGateWayModel");
-const PAYMENTCONFIG = require("../config/paymenterror.json");
 var mongoose = require('mongoose');
-
 const parse = require('xml-parser');
 const BASECONTROL = require("./basecontroller");
 const request  = require("request");
@@ -20,56 +17,43 @@ const MAINCONFIG = require("../config/index.json");
 const UsersControl = require("./userscontroller");
 const playerlimits = users_model.playerlimit;
 const documentModel = require('../models/profile_model').documentModel;
-const permission_model = users_model.permission_model;
-const DashboardControl = require("./dashboardController");
 const Satta_ModelS = require('../models/matka_model');
 const BazaarModel = Satta_ModelS.BazaarModel;
 const matka_betmodels = Satta_ModelS.matka_betmodels;
 const Amount_Type =MAINCONFIG.AMOUNT_TYPE;
-const Wallet_Type =MAINCONFIG.WALLET_TYPE;
 const GAMELISTMODEL = require("../models/games_model").GAMELISTMODEL;
-
-async function run(){
-    var ff = await BASECONTROL.Bfind(balance_histoy);
-    for(var i in ff){
-        await BASECONTROL.BfindOneAndUpdate(balance_histoy,{_id : ff[i]._id},{createDate : ff[i].date});
-    }
-
-}
-
+const bethistory_model = require('../models/bethistory_model').BettingHistory_model;  
+const Reportscontrol = require("./reportcontroller");
+const { adminUser, GamePlay } = require("../models/users_model");
+const BonusMenuModel = require("../models/promotion_model").BonusMenumodel;
+const BonusHistory = require("../models/promotion_model").BonusHistory;
+const PCONFIG = require("../config/pconfig")
+const {firstpagesetting} = require("../models/firstpage_model")
+const SATACONFIG = require("../config/sconfig")
 
 exports.players_load = async(req,res,next)=>{
 
-    console.time();
-    var role = BASECONTROL.get_useritem_fromid(req);
-    var userslist = await UsersControl.get_users_items(role);
-    var news = [];
-    for(var i = 0 ; i < userslist.length ; i++){
-        if(userslist[i].permission == MAINCONFIG.USERS.player ){
-            news.push(userslist[i]);
-        }
-    }
-    // var roledata = await UsersControl.roles_get_fact(role);
-    
-    console.timeEnd();
+    var role = BASECONTROL.getUserItem(req);
+    var userslist = await UsersControl.get_players_items(role);
     res.json({
         status : true,
-        data : news,
-        // roledata : roledata
+        data : userslist,
     });
     return next();
 }
 
 exports.get_inactivePlayers = async(req,res,next)=>{
-    var role = BASECONTROL.get_useritem_fromid(req);
+    var role = BASECONTROL.getUserItem(req);
     var start = BASECONTROL.get_stand_date_first(req.body.start);
     var end = BASECONTROL.get_stand_date_end(req.body.end);
-    var userslist = await UsersControl.get_users_items(role);
+    var userslist = await UsersControl.get_players_items(role);
     var news = [];
     for(var i = 0 ; i < userslist.length ; i++){
-        var flag = await BASECONTROL.BfindOne(totalusermodel,{email : userslist[i].email, date :{$gte: start, $lte:end}});
-        if(userslist[i].permission == MAINCONFIG.USERS.player && !flag ){
-            news.push(userslist[i]);
+        if(userslist[i].permission == MAINCONFIG.USERS.player ){
+            var flag = await BASECONTROL.BfindOne(totalusermodel,{email : userslist[i].email, date :{$gte: start, $lte:end}});
+            if(!flag ){
+                news.push(userslist[i]);
+            }
         }
     }
     res.json({
@@ -81,17 +65,18 @@ exports.get_inactivePlayers = async(req,res,next)=>{
 
 exports.realtimeusers_load =async (req,res,next) =>{
 
-    var mainuser = BASECONTROL.get_useritem_fromid(req);
-    var playerslist = await UsersControl.get_users_items(mainuser);
+    var mainuser = BASECONTROL.getUserItem(req);
+    var playerslist = await UsersControl.get_players_items(mainuser);
     var start = BASECONTROL.get_stand_date_first(req.body.start);
     var end = BASECONTROL.get_stand_date_end(req.body.end);
     var indexs = await this.get_index_users(start,end,playerslist)
     var rdata = await BASECONTROL.Bfind(sessionmodel);
     var rows= [];
     for(var i in rdata){
-        var item = playerslist.find(obj => obj._id == rdata[i].id);
-        if(item){            
-            rows.push(item);
+        var item = playerslist.find(obj => obj.email == rdata[i].email);
+        if(item){     
+            let row = Object.assign({},item._doc ? item._doc  : item,rdata[i]._doc ? rdata[i]._doc  :rdata[i]);
+            rows.push(row);
         }
     }
     if(!rows){ 
@@ -154,7 +139,7 @@ exports.get_index_players = async (start,end,userlist) =>{
 }
 
 exports.gamesrealtimeusers_load = async (req,res,next) =>{
-    var mainuser = BASECONTROL.get_useritem_fromid(req);
+    var mainuser = BASECONTROL.getUserItem(req);
     var playerslist = await UsersControl.get_users_items(mainuser);
     var start = BASECONTROL.get_stand_date_first(req.body.start);
     var end = BASECONTROL.get_stand_date_end(req.body.end);
@@ -197,19 +182,82 @@ exports.balances_load= async(req,res,next) =>{
 
 }
 
+exports.bonusoptions = async(amount, userid,id) => {
+
+    let playeritem = await GamePlay.findOne({id : userid});
+    let bonusid =  id;
+    if (!bonusid && bonusid.length <= 0){
+        return;
+    }
+    let reloadbonus = await BonusMenuModel.findOne({_id : mongoose.Types.ObjectId(bonusid),isdelete : false});
+    if (reloadbonus) {
+        let min = reloadbonus.min;
+        let max = reloadbonus.max;
+        let bonus = 0;
+        if (amount >= min && amount <= max) {
+            bonus = amount;
+        } else if (amount > max) {
+            bonus = max;
+        } else {
+            return true;
+        }
+        let bonusamount = bonus * (reloadbonus.percent / 100);
+
+        let expiredAt = new Date(new Date().valueOf() + (60 * 60 * 1000 * 24) * parseInt(reloadbonus.timeline));
+        let row = {
+            userid : mongoose.Types.ObjectId(playeritem.id),
+            bonusid : mongoose.Types.ObjectId(reloadbonus._id),
+            status : "0",
+            expiredAt :expiredAt ,
+            amount : bonusamount,
+            lastbalance : playeritem.bonusbalance,
+            walletbalance : amount,
+
+        }
+        let sd = new BonusHistory(row);
+
+        let order_no = new Date().valueOf();
+
+        var wallets_ = {
+            commission:0,
+            status :"DEPOSIT",
+            roundid :order_no,
+            transactionid : order_no,
+            userid : mongoose.Types.ObjectId(playeritem.id),
+            credited : bonusamount,
+            debited : 0,
+            lastbalance : playeritem.bonusbalance,
+            bonus : true,
+            bonushisid : mongoose.Types.ObjectId(sd._id)
+        }
+
+        var  plcurrent =  await BASECONTROL.email_bonusbalanceupdate(playeritem.email,bonusamount,wallets_); 
+        sd["updatedbalance"] = plcurrent;
+
+         await BASECONTROL.BSave(sd);
+      
+    } else {
+        return true
+    }
+}
+
 exports.deposit_func  = async(req) =>{
 
-
-    var item = BASECONTROL.get_useritem_fromid(req);
-
+    
+    var item = BASECONTROL.getUserItem(req);
     var inputdata = req.body.data;
-    var amount = parseFloat(inputdata.amount);
+    if(!inputdata ){
+        return({ status : false,data : "Please provide valid data."});
+    }
+    var bonusid = inputdata.bonusid;
+    var amount = parseInt(inputdata.amount);
     var amounttype = inputdata.amounttype;
     var comment = inputdata.comment;
-    var cemail = item.email;
-    var lastbalance = 0;
-    var c_item = await BASECONTROL.BfindOne(playersUser,{email : inputdata.email});
-    if (!c_item){
+    var reasoncomment = inputdata.reasoncomment;
+    
+    var playeritem = await BASECONTROL.BfindOne(playersUser,{email : inputdata.email});
+    var adminitem = await BASECONTROL.BfindOne(playersUser,{email : item.email});
+    if (!playeritem || !adminitem ){
         return({ status : false,data : "we are sorry. Server has some issues"});
     }
 
@@ -217,96 +265,120 @@ exports.deposit_func  = async(req) =>{
         return({ status : false,data : "Amount error"});
     }
 
-    var current = 0;
-
     var order_no = "admin-"+new Date().valueOf();
-    var wallets_ = {
-        commission:0,
-        status :"DEPOSIT",
-        roundid :order_no,
-        transactionid : order_no,
-        LAUNCHURL : "cash",
-        GAMEID : "ADMIN",
-        USERID : c_item.id,
-        credited : amount,
-        debited : 0,
-        lastbalance : c_item.balance
-    }
-  
-    if(item.permission == MAINCONFIG.USERS.superadmin){ //   // when admin is superadmin ,
-
-        if(amounttype === Amount_Type.BALANCE){
-            let up =  await BASECONTROL.email_balanceupdate(inputdata.email,amount,wallets_);
-            lastbalance = c_item.balance;
-            current = up;
-        }else{
-            // uphandle = await BASECONTROL.player_Bonusupdatein_Username(amount,username);
-            // lastbalance = c_item.bonusbalance;
-            // current = uphandle;
-        }
-    }else{
-        var playitem = await BASECONTROL.BfindOne(playersUser,{email : item.email});
-        var wallets_2 = {
-            commission:0,
-            status :"WITHDRAWL",
-            roundid :order_no,
-            transactionid : order_no,
-            LAUNCHURL : "cash",
-            GAMEID : "ADMIN",
-            USERID : playitem.id,
-            credited : amount,
-            debited : 0,
-            lastbalance : playitem.balance
-        }
-        
-        var balance = playitem.balance;
-        var bonusbalance = playitem.bonusbalance;
-        if(amounttype === Amount_Type.BALANCE){
-            if (balance >= amount){
-                // withdrwal admin 
-                let up1 =  await BASECONTROL.email_balanceupdate( playitem.email,-1 * amount,wallets_2);  
-                // deposit play 
-                let up2 =  await BASECONTROL.email_balanceupdate(inputdata.email,amount,wallets_); 
-                lastbalance = c_item.balance;
-                current = up2;
-            }else{
-               return({ status : false,data : "6 we are sorry. Your account is  insufficient balance. Please deposit your balance"});
-            }
-        }else{
-            //bonus part
-
-            // if (bonusbalance >= amount){
-            //     uphandle =  await BASECONTROL.player_Bonusupdatein_Username( -1 * amount,playitem.username);
-            //     uphandle =  await BASECONTROL.player_Bonusupdatein_Username(amount,username);
-            //     lastbalance = c_item.bonusbalance;
-            //     current = uphandle;
-            // }else{
-            //    return({ status : false,data : "7 we are sorry. Your account is  insufficient balance. Please deposit your balance"});
-            // }
-        }
-    }
 
     let row ={};
     row["type"] = "admin";
     row["email"] = inputdata.email;
     row["order_no"] = order_no;
-    row["status"] = PAYMENTCONFIG.PaymentStatus_bool.Approve;
+    row["status"] = PCONFIG.Approve;
     row["amount"] = amount;
     row["wallettype"] = "DEPOSIT";
-    row["lastbalance"] = lastbalance;
-    row["updatedbalance"] = current;
     row["comment"] = comment;
-    row["resultData"] = { createdby : cemail };
-    row["userid"] = mongoose.Types.ObjectId(c_item.id);
+    row["reasoncomment"] = reasoncomment;
     
-console.log(row);
-    let sh = await BASECONTROL.data_save(row,TransactionsHistory);
-    if(sh){
+    row["resultData"] = { createdby : adminitem.email };
+    row["userid"] = mongoose.Types.ObjectId(playeritem.id);
+    row["lastbalance"] = playeritem.balance;
+/// above player part    
+
+    let row1 ={};
+    row1["type"] = "admin";
+    row1["email"] = adminitem.email;
+    row1["order_no"] = order_no;
+    row1["status"] = PCONFIG.Approve;
+    row1["amount"] = amount;
+    row1["wallettype"] = "WITHDRAWL";
+    row1["comment"] = comment;
+    row1["userid"] = mongoose.Types.ObjectId(adminitem.id);
+    row1["lastbalance"] = adminitem.balance;
+    row1["resultData"] = { auto : true };
+    row1["reasoncomment"] = reasoncomment;
+
+    let adminrow = new TransactionsHistory(row1);
+    let playerrow = new TransactionsHistory(row);
+
+    /// above admin part
+    var plcurrent = 0;
+    var adcurrent = 0;
+
+    var wallets_ = {
+        commission:0,
+        status :"DEPOSIT",
+        roundid :order_no,
+        transactionid : order_no,
+        userid : mongoose.Types.ObjectId(playeritem.id),
+        credited : amount,
+        debited : 0,
+        lastbalance : playeritem.balance,
+        paymentid : playerrow._id
+    }
+
+    var wallets_2 = {
+        commission:0,
+        status :"WITHDRAWL",
+        roundid :order_no,
+        transactionid : order_no,
+        userid : mongoose.Types.ObjectId(adminitem.id),
+        credited : 0,
+        debited : amount,
+        lastbalance : adminitem.balance,
+        paymentid : adminrow._id
+    }
+  
+    var balance = adminitem.balance;
+    var bonusbalance = adminitem.bonusbalance;
+
+    if(amounttype == Amount_Type.BALANCE){
+
+        this.bonusoptions(amount, playeritem.id, bonusid)
+
+        if ( item.permission != MAINCONFIG.USERS.superadmin && balance >= amount ){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_balanceupdate( adminitem.email,-1 * amount,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_balanceupdate(playeritem.email,amount,wallets_); 
+        }else if(item.permission == MAINCONFIG.USERS.superadmin){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_balanceupdate( adminitem.email,0,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_balanceupdate(playeritem.email,amount,wallets_); 
+        }else{
+            return({ status : false,data : " we are sorry. Your account is  insufficient balance. Please deposit your balance"});
+        }
+    }else{
+        wallets_2['lastbalance'] = bonusbalance;
+        wallets_2['bonus'] = true;
+        wallets_['lastbalance'] = playeritem.bonusbalance;
+        wallets_['bonus'] = true;
+        //bonus part
+        if ( item.permission != MAINCONFIG.USERS.superadmin && bonusbalance >= amount ){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_bonusbalanceupdate( adminitem.email,-1 * amount,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_bonusbalanceupdate(playeritem.email,amount,wallets_); 
+        }else if(item.permission == MAINCONFIG.USERS.superadmin){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_bonusbalanceupdate( adminitem.email,0,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_bonusbalanceupdate(playeritem.email,amount,wallets_); 
+        }else{
+            return({ status : false,data : " we are sorry. Your account is  insufficient balance. Please deposit your Bonus balance"});
+        }
+
+        playerrow["resultData"][["Bonus"]] = true;
+        adminrow["resultData"]["Bonus"] = true;
+    }
+    
+    playerrow["updatedbalance"] = plcurrent;
+    adminrow["updatedbalance"] = adcurrent;
+    let sh1 = await BASECONTROL.BSave(playerrow);
+    let sh2 = await BASECONTROL.BSave(adminrow);
+    if(sh1 && sh2){
         return ({status : true});
     }else{
         return({ status : false,data : "we are sorry. Server has some issues"});
     }
-  
 }
 
 // admin deposit action
@@ -322,97 +394,136 @@ exports.deposit_action = async (req,res,next) =>{
 
 exports.withdrawlfunc = async (req) =>{
 
-    var item = BASECONTROL.get_useritem_fromid(req);
-
+    var item = BASECONTROL.getUserItem(req);
     var inputdata = req.body.data;
-    var amount = inputdata.amount;
-    var username = inputdata.username;
+
+    if(!inputdata ){
+        return({ status : false,data : "Please provide valid data."});
+    }
+    var amount = parseInt(inputdata.amount);
     var amounttype = inputdata.amounttype;
-    var cemail = item.email;
     var comment = inputdata.comment;
-    var lastbalance = 0;
-    var current = 0;
+    var reasoncomment = inputdata.reasoncomment;
+    
+    var playeritem = await BASECONTROL.BfindOne(playersUser,{email : inputdata.email});
+    var adminitem = await BASECONTROL.BfindOne(playersUser,{email : item.email});
+    if (!playeritem || !adminitem ){
+        return({ status : false,data : "we are sorry. Server has some issues"});
+    }
+
     if(amount <= 0){
         return({ status : false,data : "Amount error"});
-    }
-    var c_item = await BASECONTROL.BfindOne(playersUser,{email : inputdata.email});
-    if (!c_item){
-        return({ status : false,data : "we are sorry. Server has some issues"});
     }
 
     var order_no = "admin-"+new Date().valueOf();
 
-    var wallets_ = {
-        commission:0,
-        status :"WITHDRAWl",
-        roundid :order_no,
-        transactionid : order_no,
-        LAUNCHURL : "cash",
-        GAMEID : "ADMIN",
-        USERID : c_item.id,
-        credited : 0,
-        debited : amount,
-        lastbalance : c_item.balance
-    }
-
-    if(item.permission == MAINCONFIG.USERS.superadmin){
-
-        if(amounttype === Amount_Type.BALANCE){
-            uphandle =  await BASECONTROL.email_balanceupdate(inputdata.email,amount * -1,wallets_);
-            lastbalance = c_item.balance;
-            current = uphandle;
-        }else{
-            uphandle = await BASECONTROL.player_Bonusupdatein_Username(amount * -1,username);
-            lastbalance = c_item.bonusbalance;
-            current = uphandle;
-        }
-    }else{
-        var playitem = await BASECONTROL.BfindOne(playersUser,{email : item.email})
-
-        if (!playitem){
-            return({ status : false,data : "we are sorry. Server has some issues"});
-        } 
-        var wallets_2 = {
-            commission:0,
-            status :"DEPOSIT",
-            roundid :order_no,
-            transactionid : order_no,
-            LAUNCHURL : "cash",
-            GAMEID : "ADMIN",
-            USERID : playitem.id,
-            credited : amount,
-            debited : 0,
-            lastbalance : playitem.balance
-        }
-
-        if(amounttype === Amount_Type.BALANCE){
-            uphandle =  await BASECONTROL.email_balanceupdate(playitem.email,amount,wallets_2);
-            uphandle =  await BASECONTROL.email_balanceupdate( inputdata.email,amount * -1,wallets_);
-            lastbalance = c_item.balance;
-            current = uphandle;
-        }else{
-            uphandle =  await BASECONTROL.player_Bonusupdatein_Username( amount,playitem.username);
-            uphandle =  await BASECONTROL.player_Bonusupdatein_Username(amount * -1,username);
-            lastbalance = c_item.bonusbalance;
-            current = uphandle;
-        }
-    }
-    
     let row ={};
     row["type"] = "admin";
     row["email"] = inputdata.email;
     row["order_no"] = order_no;
-    row["status"] = PAYMENTCONFIG.PaymentStatus_bool.Approve;
+    row["status"] = PCONFIG.Approve;
     row["amount"] = amount;
     row["wallettype"] = "WITHDRAWL";
-    row["lastbalance"] = lastbalance;
-    row["updatedbalance"] = current;
     row["comment"] = comment;
-    row["resultData"] = { createdby : cemail };
-    row["userid"] = mongoose.Types.ObjectId(c_item.id);
+    row["resultData"] = { createdby : adminitem.email };
+    row["userid"] = mongoose.Types.ObjectId(playeritem.id);
+    row["lastbalance"] = playeritem.balance;
+    row["reasoncomment"] = reasoncomment;
     
-    let sh = await BASECONTROL.data_save(row,TransactionsHistory);
-    if(sh){
+/// above player part    
+
+    let row1 ={};
+    row1["type"] = "admin";
+    row1["email"] = adminitem.email;
+    row1["order_no"] = order_no;
+    row1["status"] = PCONFIG.Approve;
+    row1["amount"] = amount;
+    row1["wallettype"] = "DEPOSIT";
+    row1["comment"] = comment;
+    row1["userid"] = mongoose.Types.ObjectId(adminitem.id);
+    row1["lastbalance"] = adminitem.balance;
+    row1["resultData"] = { auto : true };
+    row1["reasoncomment"] = reasoncomment;
+    
+    let adminrow = new TransactionsHistory(row1);
+    let playerrow = new TransactionsHistory(row);
+
+    /// above admin part
+    var plcurrent = 0;
+    var adcurrent = 0;
+
+    var wallets_ = {
+        commission:0,
+        status :"WITHDRAWL",
+        roundid :order_no,
+        transactionid : order_no,
+        userid : mongoose.Types.ObjectId(playeritem.id),
+        credited : 0,
+        debited : amount,
+        lastbalance : playeritem.balance,
+        paymentid : playerrow._id
+    }
+
+    var wallets_2 = {
+        commission:0,
+        status :"DEPOSIT",
+        roundid :order_no,
+        transactionid : order_no,
+        userid : mongoose.Types.ObjectId(adminitem.id),
+        credited : amount,
+        debited : 0,
+        lastbalance : adminitem.balance,
+        paymentid : adminrow._id
+    }
+  
+    var balance = playeritem.balance;
+    var bonusbalance = playeritem.bonusbalance;
+
+    if(amounttype == Amount_Type.BALANCE){
+        if ( item.permission != MAINCONFIG.USERS.superadmin && balance >= amount ){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_balanceupdate( adminitem.email, amount,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_balanceupdate(playeritem.email,-1 * amount,wallets_); 
+        }
+        else if(item.permission == MAINCONFIG.USERS.superadmin  && balance >= amount){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_balanceupdate( adminitem.email,0,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_balanceupdate(playeritem.email,-1 * amount,wallets_); 
+        }else{
+            return({ status : false,data : " we are sorry. Your account is  insufficient balance. Please deposit your balance"});
+        }
+    }else{
+        wallets_2['lastbalance'] = adminitem.bonusbalance;
+        wallets_2['bonus'] = true;
+        wallets_['lastbalance'] = playeritem.bonusbalance;
+        wallets_['bonus'] = true;
+        //bonus part
+        if ( item.permission != MAINCONFIG.USERS.superadmin && bonusbalance >= amount ){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_bonusbalanceupdate( adminitem.email, amount,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_bonusbalanceupdate(playeritem.email,-1 * amount,wallets_); 
+        }
+        else if(item.permission == MAINCONFIG.USERS.superadmin && bonusbalance >= amount){
+            // withdrwal admin 
+            adcurrent =  await BASECONTROL.email_bonusbalanceupdate( adminitem.email,0,wallets_2);  
+            // deposit play 
+            plcurrent =  await BASECONTROL.email_bonusbalanceupdate(playeritem.email,-1 * amount,wallets_); 
+        }else{
+            return({ status : false,data : " we are sorry. Your account is  insufficient balance. Please deposit your balance"});
+        }
+        playerrow["resultData"][["Bonus"]] = true;
+        adminrow["resultData"]["Bonus"] =  true;
+    }
+    
+    playerrow["updatedbalance"] = plcurrent;
+    adminrow["updatedbalance"] = adcurrent;
+    
+    let sh1 = await BASECONTROL.BSave(playerrow);
+    let sh2 = await BASECONTROL.BSave(adminrow);
+    if(sh1 && sh2){
         return ({status : true});
     }else{
         return({ status : false,data : "we are sorry. Server has some issues"});
@@ -506,29 +617,145 @@ exports.playerresetpass_action = async (req,res,next)=>{
 
 }
 
-exports.balance_history_load = async (req,res,next) =>{
-    var wallettype = req.body.wallettype;
-    var date = req.body.dates;
+exports.balance_history_total = async (req,res,next) =>{
     
-    var start = BASECONTROL.get_stand_date_first(date[0]);
-    var end = BASECONTROL.get_stand_date_end(date[1]);
-    var role =await BASECONTROL.get_useritem_fromid(req)
-    var userslist = await UsersControl.get_users_items(role);
-    var resdata = [];
+    let filters = req.body.filters;
+    let dates = filters.dates;
+    let userslist = [];
+    let orquery = [];
+    let andquery = [];
+    let wallettype = filters.bool;
+    var useroptions = [{"label" : "All",value : ""}];
 
-    for(var i in userslist){
-        let rdata = await BASECONTROL.BSortfindPopulate(TransactionsHistory,{ createDate :{$gte: start, $lte:end},email:userslist[i].email,type :"admin",wallettype : wallettype},{createDate : -1},"userid");
-        resdata = [...resdata,...rdata];
+    if (dates.length > 2) {
+        return res.send({status : false , error : "Please provide date."});
     }
 
-    resdata.sort(function(resdata,b){
-        return new Date(b.createDate) - new Date(resdata.createDate)
-    })
+    var start = BASECONTROL.get_stand_date_first(dates[0]);
+    var end = BASECONTROL.get_stand_date_first(dates[1]);
+    var role = BASECONTROL.getUserItem(req)
+    userslist = await UsersControl.get_users_items(role);
+    for (var i in userslist) {
+        orquery.push({userid :mongoose.Types.ObjectId(userslist[i]._id)})
+    }
 
-    res.json({status : true, data : resdata});
-    return next();
+    var statusoptions = [
+        {label : "All" , value : ""}
+    ];
+
+    let tconfig = PCONFIG;
+    for (let i in tconfig) {
+        statusoptions.push({value : tconfig[i],label : tconfig[i]});
+    }
+
+    if(orquery.length > 0) {
+
+        andquery = [{ createDate :{$gte: start, $lte:end},type :"admin",wallettype : wallettype,$or : orquery,"resultData.auto" : {$ne : true}}];
+        
+        let betuser =  await TransactionsHistory.aggregate(
+            [
+                {
+                    $match:    
+                    { 
+                        $and: andquery,
+                        $or : orquery
+                    },
+                },
+                {
+                    $group: 
+                    {  
+                        _id: "$userid",
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "user_users",
+                        "localField": "_id",
+                        "foreignField": "_id",
+                        "as": "user"
+                    }
+                },
+                { "$unwind": "$user" },
+                { "$project":{
+                    label:'$user.username',
+                    value: "$user._id", 
+               }}
+            ]
+        )
+
+        useroptions = [...useroptions,...betuser];
+    }
+
+    res.json(
+    {
+        status:true, 
+        data :  { useroptions : useroptions ,statusoptions : statusoptions},
+    })
+    return next();   
+
+}
+
+exports.balance_history_load = async (req,res,next) =>{
+
+    let filters = req.body.filters;
+    let params = req.body.params;
+    let dates = filters.dates;
+    let userslist = [];
+    let orquery = [];
+    let andquery = [];
+    let wallettype = filters.bool;
+    let status = filters.status;
+    
+    let pages = {};
+    let array = [];
+
+    if (dates.length > 2) {
+        return res.send({status : false , error : "Please provide date."});
+    }
+
+    var start = BASECONTROL.get_stand_date_first(dates[0]);
+    var end = BASECONTROL.get_stand_date_first(dates[1]);
+    var role = BASECONTROL.getUserItem(req)
+    userslist = await UsersControl.get_users_items(role);
+    for (var i in userslist) {
+        orquery.push({userid :mongoose.Types.ObjectId(userslist[i]._id)})
+    }
+
+    
+    if(orquery.length > 0) {
+
+        andquery = [{ createDate :{$gte: start, $lte:end},type :"admin",wallettype : wallettype,$or : orquery,"resultData.auto" : {$ne : true}, status : {  $regex: status}}];
+
+        let totalcount =  await TransactionsHistory.countDocuments(
+            { 
+                $and: andquery,
+                $or : orquery
+            },
+        );
+        
+        pages = Reportscontrol.setpage(params,totalcount);
+        if (totalcount > 0) {
+    
+            array =  await TransactionsHistory.find(
+            { 
+                $and: andquery,
+                $or : orquery
+            })
+            .populate("userid").skip(pages.skip).limit(pages.limit).sort({createDate : -1});
+        }
+        pages["skip2"] = (pages.skip) + array.length;
+    }
+
+    res.json(
+    {
+        status:true, 
+        data:array,
+        pageset : pages
+    })
+    return next(); 
     
 }
+
 
 exports.kickPlayerFromGames_action = async(req,res,next) =>{
     
@@ -570,57 +797,58 @@ exports.get_guestgameaccount =async(req,res,next)=>{
 }
 
 exports.get_realgameaccount =async(req,res,next)=>{
-     var user = req.body.user;
-     var width = req.body.width
-     var gamedata = req.body.game;
+
+    var width = req.body.width;
+    var isTelegram = req.body.isTelegram;
+     var gamedata = null;
+     if (isTelegram) {
+
+        width = 300
+        gamedata = await BASECONTROL.BfindOne(GAMELISTMODEL,{_id : req.body.gameId});
+        let uitem = await BASECONTROL.BfindOne(adminUser,{email : req.body.telegramId});
+        
+        gamedata.image =  gamedata.image ? gamedata.image.length > 0 ? gamedata.image.slice(0,5) === "https" ? gamedata.image : "https://cms.fairbets.co/uploads/" + gamedata.image : "" : ""
+        
+        if (!gamedata || !uitem) {
+            res.json({status : false});
+            return next();
+        }
+        req.user = uitem;
+    } else {
+        gamedata = req.body.game;
+    }
+
      var limits = req.body.limits;
      var playaccount = await get_gameaccount(req,limits);
      if(!playaccount.status){
-         res.json({status : false,data : playaccount.data,bool : playaccount.bool});
-         return next();
+        res.json({status : false,data : playaccount.data,bool : playaccount.bool});
+        return next();
      }else{
-         var account = playaccount.data;
-         var newtoken = await make_token(account);        
-         get_launch_url(account,gamedata,newtoken,width,limits,async(rdata)=>{
+        var account = playaccount.data;
+        var newtoken = await make_token(account);        
+        get_launch_url(account,gamedata,newtoken,width,limits,async(rdata)=>{
              if(rdata.status){
-                // var finhandle = await BASECONTROL.BfindOne(gamesessionmodel,{email : newtoken.email});
-                // if(finhandle){
                     var uhandle = await BASECONTROL.BfindOneAndUpdate(gamesessionmodel,{email : newtoken.email},newtoken);
-                    console.log(uhandle)
                     if(uhandle){
                         res.json({
-                            status : true,data : {url : rdata.url,token : newtoken}
+                            status : true,data : {url : rdata.url,token : newtoken , gamedata}
                         });
                         return next();
                     }else{
-                        // res.json({status : false,data : "You cannot bet Simultaniously "});
                         res.json({status : false,data : "You cannot bet Play",bool : 0});
                         return next();
                     }
-                // }else{
-                //     var savehandle =  await BASECONTROL.data_save(newtoken,gamesessionmodel);
-                //     if(!savehandle){
-                //         res.json({status : false,data : "You cannot bet Play",bool : 0});
-                //         return next();
-                //     }else{
-                //         res.json({
-                //             status : true,data : {url : rdata.url,token : newtoken}
-                //         });
-                //         return next();
-                //     }
-                // }
-             }else{
+            }else{
                  res.json({status : false,data : rdata.data,bool : 0});
                  return next();
-             }
-         });
+            }
+        });
  
      }
 }
  
 async function get_launch_url(account,gamedata,token,width,limits,callback){
      var LAUNCH_FLAG = gamedata.LAUNCHURL;
-     console.log("---------------------LAUNCH_FLAG",LAUNCH_FLAG)
      var usersdata = await BASECONTROL.BfindOne(Users,{email: account.email});
      var currency = usersdata.currency == "" ? "INR" : usersdata.currency;
      switch(LAUNCH_FLAG){
@@ -665,26 +893,25 @@ async function get_launch_url(account,gamedata,token,width,limits,callback){
                 "Roulette":"roulette",
                 "Baccarat":"baccarat",
                 "Blackjack":"blackjack",
-               "Poker":"casinoholdem"
+                "Poker":"casinoholdem"
             }
              var select_game = gametypes[gamedata.TYPE];
-            var limitIds = gamedata.WITHOUT;
-            
-            if(limitIds.Mojos){
-                var url = BASECONFIG.vivo.url2+
-                "tableguid="+limitIds.tableguid+
-                "&token=" +token.token +
-                "&OperatorId="+BASECONFIG.vivo.operatorid+
-                "&language=en"+
-                "&cashierUrl="+HOMECONFIG.homedomain+
-                "&homeURL="+HOMECONFIG.homedomain +
-                "&currency="+currency +
-                "&GameID=" + limitIds.gameid+
-                "&mode=real"+
-                "&operatorToken=" + limitIds.operatorToken+
-                "&gametype=live&host=https://de-lce.svmsrv.com";
-                callback({status : true,url : url})
-            }else{
+            // var limitIds = gamedata.WITHOUT;
+                // if(limitIds.Mojos){
+                //     var url = BASECONFIG.vivo.url2+
+                //     "tableguid="+limitIds.tableguid+
+                //     "&token=" +token.token +
+                //     "&OperatorId="+BASECONFIG.vivo.operatorid+
+                //     "&language=en"+
+                //     "&cashierUrl="+HOMECONFIG.homedomain+
+                //     "&homeURL="+HOMECONFIG.homedomain +
+                //     "&currency="+currency +
+                //     "&GameID=" + limitIds.gameid+
+                //     "&mode=real"+
+                //     "&operatorToken=" + limitIds.operatorToken+
+                //     "&gametype=live&host=https://de-lce.svmsrv.com";
+                //     callback({status : true,url : url})
+                // }else{
                 var limitId = limits ? limits.limitId : "";
                 var  url = BASECONFIG.vivo.url+
                     "token="+token.token+
@@ -702,34 +929,45 @@ async function get_launch_url(account,gamedata,token,width,limits,callback){
                     "&application="+select_game+
                     "&homeurl="+HOMECONFIG.homedomain;
                     callback({status : true,url : url})
-                }
+                // }
                 break;
          }
  
          case "5" :{
+            let con = await firstpagesetting.findOne({type : "WACCreential"});
+            if (con) {
+                let wac = con.content;
+                var url = wac.LaunchUrl + "token="+token.token+"&pn="+ wac.operatorToken + "&lang=en&game="+ gamedata.ID + "&type=CHARGED";
+                callback({status : true,url : url});
+            } else {
+                callback({status : false,data : "server error"});
+            }
              //wac
              // https://pi-test.njoybingo.com/game.do?token=934fc6cc086a0bba00a8fe9bda626de2&pn=kasino9&lang=en&game=1X2-8008&type=CHARGED
-             var url = BASECONFIG.wac.url + "token="+token.token+"&pn="+ BASECONFIG.wac.pn + "&lang=en&game="+ gamedata.ID+"&type=CHARGED";
-            callback({status : true,url : url});
+            //  var url = BASECONFIG.wac.url + "token="+token.token+"&pn="+ BASECONFIG.wac.pn + "&lang=en&game="+ gamedata.ID+"&type=CHARGED";
+            // callback({status : true,url : url});
             break;
          }
 
         case "6" : {
-            var clientPlatform = width < 768 ?  "mobile" : "desktop";
-            var mode = gamedata.mode ? "0" : "1";
-            var hashstring = token.token+gamedata.ID+HOMECONFIG.homedomain+mode+"enmaster"+clientPlatform+HOMECONFIG.homedomain+BASECONFIG.xpress.hashkey;
-             var hash = BASECONTROL.md5convert(hashstring);
-             var url = BASECONFIG.xpress.url + 
-             "token="+token.token + 
-             "&game=" + gamedata.ID + 
-             "&backurl="+HOMECONFIG.homedomain+
-             "&mode="+ mode +
-             "&language=en"+
-             "&group=master"+
-             "&clientPlatform="+clientPlatform +
-             "&cashierurl="+HOMECONFIG.homedomain+
-             "&h="+hash;
-             callback({status : true,url : url});
+
+            let con = await firstpagesetting.findOne({type : "XpressCredential"});
+            if (con) {
+                var privateKey = con.content.privateKey;
+                var xpressUrl = con.content.launchUrl;
+
+                var clientPlatform = width < 768 ?  "mobile" : "desktop";
+                var mode = gamedata.mode ? "0" : "1";
+                var hashstring = token.token + gamedata.ID + HOMECONFIG.homedomain + mode + "enmaster" + clientPlatform + HOMECONFIG.homedomain + privateKey;
+                 var hash = BASECONTROL.md5convert(hashstring);
+
+                 var url = xpressUrl + "?token="+token.token + "&game=" + gamedata.ID +  "&backurl="+HOMECONFIG.homedomain+
+                 "&mode="+ mode + "&language=en"+ "&group=master"+ "&clientPlatform="+clientPlatform + "&cashierurl="+HOMECONFIG.homedomain+ "&h="+hash;
+
+                 callback({status : true,url : url});
+            } else {
+                callback({status : false,data : "server error"});
+            }
              break;
         }
         case "7" :{
@@ -753,9 +991,8 @@ async function get_launch_url(account,gamedata,token,width,limits,callback){
             "&secret=" + BASECONFIG.MySlotty.RPCSecret +
             "&game_id=" + gamedata.ID +
             "&player_id=" + account.id +
-            "&currency=" + currency +
+            "&currency=" + "INR" +
             "&mobile=" + clientPlatform;
-
             var options = {
                 'method': 'GET',
                 'url': URL,
@@ -820,26 +1057,44 @@ async function get_launch_url(account,gamedata,token,width,limits,callback){
             "token="+token.token +
             "&operator="+BASECONFIG.winnerpoker.operator + 
             "&gameid=" + gamedata.ID;
-            callback({status : true,url : url})
+            callback({status : true,url : url});
+            break;
         }
 
         case "12" : {
-            var host = gamedata.WITHOUT.casino ? "host=https://demo-slots-engine.7mojos.com" : "host=https://demo-live-casino-engine.7mojos.com";
-            var gametype = gamedata.WITHOUT.casino ? "slots" : "live";
-            var url = "https://demo-games.7mojos.com?" + host +
-            "&gameType=" + gametype +
-            "&gameToken=" + gamedata.WITHOUT.gameToken +
-            "&playerToken=" +  token.token +
-            "&operatorToken=d61ae8587d034c1cbf6578f3714b23eb";
-            console.log(url);
-            callback({status : true,url : url});
+
+            let con = await firstpagesetting.findOne({type : "MojosCreential"});
+            if (con) {
+
+                var casinoHost = con.content.casinoHost;
+                var LiveCasinoHost = con.content.LiveCasinoHost;
+                var LaunchUrl = con.content.LaunchUrl;
+                var operatorToken = con.content.operatorToken;
+
+                var host = gamedata.WITHOUT.casino ? casinoHost : LiveCasinoHost;
+                var gametype = gamedata.WITHOUT.casino ? "slots" : "live";
+                var url =  LaunchUrl + "host=" + host + "&gameType=" + gametype + "&gameToken=" + gamedata.WITHOUT.gameToken +
+                "&playerToken=" +  token.token + "&operatorToken=" + operatorToken;
+
+                callback({status : true,url : url});
+            } else {
+                callback({status : false,data : "server error"});
+            }
+            break;
         }
     }
 }
- 
+
+
 async function make_token(account){
+    
+    let times = 1000 * 900;
+    let Expires = await firstpagesetting.findOne({type : "SessionExpiresSetting"});
+    if (Expires) {
+        times =  parseInt(Expires.content.GameSession) * 1000;
+    }
     var row = {};
-    row['intimestamp'] = (new Date()).valueOf();
+    row['intimestamp'] = new Date(new Date().valueOf() + times);
     row['id'] = account.id;
     row['username'] = account.username;
     row['email'] = account.email;
@@ -850,6 +1105,7 @@ async function make_token(account){
     row['token'] = token;
     await BASECONTROL.data_save({email:account.email},totalgamesusermodel);    
     return row;
+
 }
  
 function xpg_token(rdata,game,callback){
@@ -898,12 +1154,12 @@ function xpg_token(rdata,game,callback){
 }
  
 async function get_gameaccount(req,limits){
-    var reqdata = req.body;
-    var user = reqdata.user;
+
+    var user = req.user;
     var limitMinvalue = limits && limits.limitMin ? limits.limitMin : 50;
     var rdata = await BASECONTROL.BfindOne(playersUser,{email : user.email});
     if(rdata){ 
-        if(rdata.balance > limitMinvalue){
+        if( (rdata.balance + rdata.bonusbalance) > limitMinvalue){
             return {status : true,data : rdata} 
         }else{
             return {status : false,data : "please deposit",bool : 1}
@@ -917,7 +1173,9 @@ function guset_launch_url(gamedata,width,callback){
     var LAUNCH_FLAG = gamedata.LAUNCHURL;
     switch(LAUNCH_FLAG){
         case "1" :{
-            var url = BASECONFIG.betsoft.guest+"bankId="+BASECONFIG.betsoft.bankId+"&gameId="+gamedata.ID+"&lang=en&homeUrl="+HOMECONFIG.homedomain;
+                let url = ""
+//                https://games.vivogaming.com/?token=&operatorID=&language=en&returnUrl=lobby&serverID=6401748
+            // var url = BASECONFIG.betsoft.guest+"bankId="+BASECONFIG.betsoft.bankId+"&gameId="+gamedata.ID+"&lang=en&homeUrl="+HOMECONFIG.homedomain;
             callback({status : true,data : url})
             break;
         }
@@ -982,7 +1240,7 @@ function guset_launch_url(gamedata,width,callback){
 exports.get_kycmenuLoad = async(req,res,next)=>{
     var status =req.body.status;
     var rdata = await BASECONTROL.Bfind(documentModel,{status : status});
-    var role = BASECONTROL.get_useritem_fromid(req)
+    var role = BASECONTROL.getUserItem(req)
     var userslist = await UsersControl.get_users_items(role);
     var rows = [];
     for(var i = 0 ; i < rdata.length ; i++){
@@ -1008,6 +1266,7 @@ exports.update_kycmenu = async(req,res,next)=>{
         res.json({status : false});
         return next();
     }else{
+        req.body.status = bool;
         if(bool == "2"){
             var udata = await BASECONTROL.BfindOneAndUpdate(Users,{email : email},{idverify : true });
             if(!udata){
@@ -1024,47 +1283,38 @@ exports.update_kycmenu = async(req,res,next)=>{
 
 exports.playerlimit_load = async (req,res,next) =>{
     var news = await BASECONTROL.Bfind(playerlimits);
-    res.json({ status : true, data : news });
+    let rows = []
+    for (var i in news) {
+        if (news[i].userid) {
+            rows.push(news[i]);
+        } else { 
+            await BASECONTROL.BfindOneAndDelete(playerlimits,{email : news[i].email});
+        }
+    }
+
+    res.json({ status : true, data : rows });
     return next();
 }
 
-exports.get_playerlimit = async(req,res,next)=>{
-    var role = BASECONTROL.get_useritem_fromid(req);
-    var userslist = await UsersControl.get_users_items(role);
-    for(var i = 0 ; i < userslist.length ; i++){
-        if(userslist[i].permission === MAINCONFIG.USERS.player){
-            var data = await BASECONTROL.BfindOne(playerlimits,{email : userslist[i].email});
-            if(data){
-                // var row= Object.assign({},userslist[i]._doc ? userslist[i]._doc : userslist[i] ,data._doc ? data._doc : data);
-                // news.push(row)
-            }else{
-                var newrow = {daylimit : MAINCONFIG.USERS.daylimit,
-                    weeklimit : MAINCONFIG.USERS.weeklimit,
-                    email : userslist[i].email,
-                    monthlimit :MAINCONFIG.USERS.monthlimit ,
-                    userid : userslist[i]._id
-                }
-                var shandle = await BASECONTROL.data_save(  newrow,playerlimits);
-                // var row = Object.assign({},
-                //     userslist[i]._doc ? userslist[i]._doc : userslist[i] ,
-                //     {daylimit : MAINCONFIG.USERS.daylimit},
-                //     {weeklimit : MAINCONFIG.USERS.weeklimit},
-                //     {monthlimit :MAINCONFIG.USERS.monthlimit }
-                // );
-                // news.push(row);
-            }
 
+exports.get_playerlimit = async(req,res,next)=>{
+    var role = BASECONTROL.getUserItem(req);
+    var userslist = await UsersControl.get_players_items(role);
+    for (var i = 0 ; i < userslist.length ; i++) {
+        var data = await BASECONTROL.BfindOne(playerlimits,{email : userslist[i].email});
+        if (!data) {
+            var newrow = {
+                daylimit : MAINCONFIG.USERS.daylimit,
+                weeklimit : MAINCONFIG.USERS.weeklimit,
+                email : userslist[i].email,
+                monthlimit :MAINCONFIG.USERS.monthlimit ,
+                userid : mongoose.Types.ObjectId(userslist[i]._id)
+            }
+            var shandle = await BASECONTROL.data_save(  newrow,playerlimits);
         }
     }
 
     this.playerlimit_load(req, res,next);
-    // if(!news){ 
-    //     res.json({ status : false });
-    //     return next();
-    // }else{
-    //     res.json({ status : true, data : news });
-    //     return next();
-    // }
 }
 
 exports.update_playerlimit = async(req,res,next)=>{
@@ -1078,172 +1328,264 @@ exports.update_playerlimit = async(req,res,next)=>{
     }
 }
 
-exports.get_wallet_mainuser = async (req,res,next) =>{
+exports.get_wallet_mainuser4 = async (req,res,next) =>{
+    var u_item = req.body.user;
+    if(!u_item){
+        var user = req.user;
+    }else{
+        user = await BASECONTROL.BfindOne(Users,{email: u_item.email});
+    }
+    var playerslist = await UsersControl.get_players_items(user);
+    var start = BASECONTROL.get_stand_date_first(req.body.startDate);
+    var end = BASECONTROL.get_stand_date_end(req.body.endDate);
+    var matka = await this.get_bazaars_revenus(playerslist,start,end);
+    res.json({status : true,data :matka })
+    return next();
+
+    
+}
+
+exports.get_wallet_mainuser3 = async (req,res,next) =>{
+
     var total = {};
     var u_item = req.body.user;
     if(!u_item){
-        u_item = req.user;
+        var user = req.user;
+    }else{
+        user = await BASECONTROL.BfindOne(Users,{email: u_item.email});
     }
-    var user = await BASECONTROL.BfindOne(Users,{email: u_item.email});
+
     var start = BASECONTROL.get_stand_date_first(req.body.startDate);
     var end = BASECONTROL.get_stand_date_end(req.body.endDate);
-    var mainuser =await BASECONTROL.get_useritem_fromid(req);
-    var playerslist = await UsersControl.get_users_items(user);
-    var betsinfor = await get_betting_infor(playerslist,start,end);
-    total = await DashboardControl.get_revenue_from_user(user,start,end);
-    var matka = await this.get_bazaars_revenus(playerslist,start,end);
-    total = Object.assign(total,{matka : matka});
+    
     var positiontaking = parseInt(user.positiontaking);
     var c_pos_tak = positiontaking > 0 && positiontaking < 100 ? (100 - positiontaking) : 0;
-    total = Object.assign(total,{BET : betsinfor.BET - betsinfor.CANCELED_BET,WIN : betsinfor.WIN,positiontaking : c_pos_tak,betindex : betsinfor.betindex})
+    total = Object.assign(total,{positiontaking : c_pos_tak})
  
-    await balance_histoy.aggregate([
-        {$match: { $and: [{amounttype : 1},{cemail : mainuser.email},{email : user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} },]}},
-        {$group: { _id: null, AMOUNT: {$sum: '$amount'},}},
-    ]).then(rdata =>{
-        if(rdata.length > 0){
-            total = Object.assign(total,{receive : rdata[0].AMOUNT})
-        }else{
-            total = Object.assign(total,{receive : 0})
-        }
-    });
 
-    await balance_histoy.aggregate([
-        {$match: { $and: [{amounttype : 1},{cemail :  user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} },]}},
-        {$group: {_id: null,AMOUNT: {$sum: '$amount'},}},
-        ]).then(rdata =>{
-            if(rdata.length > 0){
-                total = Object.assign(total,{given : rdata[0].AMOUNT})
-            }else{
-                total = Object.assign(total,{given : 0})
-            }
-    });
+    var rdata=  await TransactionsHistory.aggregate([
+        {$match: { $and: [{wallettype : "WITHDRAWL"},{email : user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} }]}},
+        {$group: { _id: null, AMOUNT: {$sum: '$amount'},}}
+    ]);
+    if(rdata.length > 0){
+        total = Object.assign(total,{receive : rdata[0].AMOUNT})
+    }else{
+        total = Object.assign(total,{receive : 0})
+    }
 
-    await balance_histoy.aggregate([
-        {$match: { $and: [{amounttype : 2},{cemail :  user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} },]}},
-        {$group: {_id: null,AMOUNT: {$sum: '$amount'},}},
-        ]).then(rdata =>{
-            if(rdata.length > 0){
-                total = Object.assign(total,{withdrawls : rdata[0].AMOUNT})
-            }else{
-                total = Object.assign(total,{withdrawls : 0})
-            }
-    });
+     rdata=  await TransactionsHistory.aggregate([
+        {$match: { $and: [{wallettype : "DEPOSIT"},{"resultData.createdby" : user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} }]}},
+        {$group: { _id: null, AMOUNT: {$sum: '$amount'},}}
+    ]);
+    if(rdata.length > 0){
+        total = Object.assign(total,{given : rdata[0].AMOUNT})
+    }else{
+        total = Object.assign(total,{given : 0})
+    }
+
+     rdata=  await TransactionsHistory.aggregate([
+        {$match: { $and: [{wallettype : "WITHDRAWL"},{"resultData.createdby" : user.email},{ "createDate": { $gte: start } }, { "createDate": { $lte:end} }]}},
+        {$group: { _id: null, AMOUNT: {$sum: '$amount'},}}
+    ]);
+    if(rdata.length > 0){
+        total = Object.assign(total,{withdrawls : rdata[0].AMOUNT})
+    }else{
+        total = Object.assign(total,{withdrawls : 0})
+    }
+    
     res.json({status : true,data :total })
     return next();
 
-    async function get_betting_infor(userslist,start,end){
-        var ddd =  DashboardControl.get_Months(start,end);
-        var array = [];
-        for(var i in userslist){
-            for(var j = 0;  j < ddd; j++){
-                await DashboardControl.BettingHistory_model( DashboardControl.get_bettingtable_prefix(start,j)).find({ $and: [ { "DATE": { $gte: start } }, { "DATE": { $lte:end} },{USERID : userslist[i]._id}] }).then(async betts=>{
-                    array.push(betts);
-                });
-            }
-        }
-        var betindex =0;
-        var totalbets = {BET : 0,WIN : 0,CANCELED_BET: 0};
-        for(var i in array){
-            for(var j in array[i]){
-                betindex ++;
-                totalbets[array[i][j].TYPE] += array[i][j].AMOUNT ? array[i][j].AMOUNT : 0 ;
-            }
-        }
-        totalbets = Object.assign({},totalbets,{betindex : betindex})
-        return totalbets
-    }
+
+   
 }
 
 exports.get_bazaars_revenus = async (userslist,start,end) =>{
 
-    var datas = await BASECONTROL.Bfind(BazaarModel,{status : true});
-    var row = {}
-        for(var j in datas){
-            if(!row[datas[j].bazaartype]){
-                row[datas[j].bazaartype] = {
-                    BET : 0,
-                    WIN : 0,
-                    COUNT : 0,
-                    PROFIT : 0
-                };
-            }else{
+    
+    let andquery = [ { "DATE": { $gte: start, $lte: end } }];
+    let orquery = [];
+    let array = [];
 
+    for (var i in userslist) {
+        orquery.push({userid :mongoose.Types.ObjectId(userslist[i]._id)})
+    }
+    var newrows = [];
+
+    array =  await matka_betmodels.aggregate([
+        {
+            $match:    
+            { 
+                $and: andquery,
+                $or : orquery
+            },
+        },
+        {
+            $group: 
+            {  
+                _id: {
+                    "type" : "$type",
+                    "status" : "$status"
+                }, 
+                "bookCount": { "$sum": "$amount" },
+                "winCount": { "$sum": "$winamount" },
+                COUNT: {$sum: 1},
             }
-            let bet = 0;
-            let win = 0;
-            let count = 0;
-            for(var k in userslist){
-                var dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : userslist[k]._id,bazaarid : datas[j]._id, $or : [{status : "2"},{status : "1"}] ,"DATE": { $gte: start ,$lte:end}});
-                count += dd.length;
-                if(dd.length > 0){
-                    for(var i in dd){
-                        bet += dd[i].amount;
-                    }
-                }
-
-                dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : userslist[k]._id,bazaarid : datas[j]._id,status : "3","DATE": { $gte: start ,$lte:end}});
-                count += dd.length;
-                if(dd.length > 0){
-                    for(var i in dd){
-                        win += dd[i].amount;
-                    }
-                }
-            }
-
-            row[datas[j].bazaartype].BET += bet;
-            row[datas[j].bazaartype].WIN += win;
-            row[datas[j].bazaartype].COUNT += count;
-        }
+        },
         
-        for(var i  in row){
-            row[i].PROFIT = row[i].BET - row[i].WIN;
+        { 
+            "$group": 
+            {
+                "_id": "$_id.type",
+                "counts" : {
+                    $push : {
+                        count : "$COUNT"
+                    }
+                },
+                "wallets": { 
+                    "$push": { 
+                        "status": "$_id.status",
+                        "count": "$bookCount",
+                        "win": "$winCount",
+                    },
+                },
+            }
+        },
+    ]);
+
+    if (array && array.length > 0) {
+
+
+        newrows = [];
+
+        for (var i in array) {
+            let row = {};
+            let wallet = {
+                pending : 0,
+                win : 0,
+                lost : 0,
+                cancel : 0,
+                GGR : 0,
+                count : 0
+            }
+            for(var j in array[i].wallets){
+                
+                let item = array[i]["wallets"][j]["status"];
+                let betam = parseInt(array[i]["wallets"][j]["count"]);
+                let winam = parseInt(array[i]["wallets"][j]["win"]);
+                wallet[item] = item == SATACONFIG.StatusKey.win ? winam : betam;
+
+            }
+
+            wallet['count'] = array[i].counts.length && array[i].counts[0].count ?  array[i].counts[0].count : 0
+            wallet["GGR"] = wallet.lost - wallet.win;
+            wallet['bazarname'] = SATACONFIG.KeyString[array[i]._id];
+            row = Object.assign(row,wallet);
+            newrows.push(row)
         }
-        return row;
+    
+    }
+
+    return newrows
+
 }
 
-exports.get_wallet_profit = async (req,res,next) =>{
-    let data = req.body;
-    let user = req.body.user;
+
+
+exports.get_accountstatement = async (req,res,next) =>{
+
+    let data = req.body.row;
+    let params = req.body.params;
     let start = BASECONTROL.get_stand_date_end(data.start);
     let end = BASECONTROL.get_stand_date_end(data.end);
-    var deposit1=  await balance_histoy.aggregate([
-        {$match: { $and: [ {email:user.email,status:"success",type : PAYMENTCONFIG.WalletType.Deposit, "createDate": { $gte: start ,$lte: end} }]}},
-        {$group: { _id: { "email": "$email"}, AMOUNT: {$sum: '$amount'},}}]);
-    var withdrawl1 =  await balance_histoy.aggregate([
-        {$match: { $and: [ {email:user.email,status:"success",type : PAYMENTCONFIG.WalletType.Withdrawl , "createDate": { $gte: start ,$lte: end}}]}},
-        {$group: { _id: { "email": "$email"}, AMOUNT: {$sum: '$amount'},}}]);
-    var deposit2 =  await TransactionsHistory.aggregate([
-        {$match: { $and: [ {email:user.email,status : PAYMENTCONFIG.WalletType_STRING.Deposit , "createDate": { $gte: start ,$lte: end}}],
-            $or: [{'resultData.status': "2"}, {"resultData.status": 'APPROVED'}] }},
-        {$group: { _id: { "email": "$email"}, AMOUNT: {$sum: '$amount'},}}]);
-    var withdrawl2 =  await TransactionsHistory.aggregate([
-        {$match: { $and: [ {email:user.email,status : PAYMENTCONFIG.WalletType_STRING.Withdrawl , "createDate": { $gte: start ,$lte: end}}],
-            $or: [{'resultData.status': "2"}, {"resultData.status": 'APPROVED'}] }},
-        {$group: { _id: { "email": "$email"}, AMOUNT: {$sum: '$amount'},}}]);
-    var currentplay = await BASECONTROL.BfindOne(playersUser,{email:user.email});
-    var deposit = 0;
-    var withdrawl = 0;
-    var netprofit = 0;
+    var andquery = {
+        userid : mongoose.Types.ObjectId(data.id),
+        updated: { $gte: start ,$lte:end}
+    }
+    
+    var Sattaconfig = req.sattaconfig;
 
-    if(deposit1.length > 0){
-        deposit += deposit1[0].AMOUNT;
+    let totalcount = await wallethistory.countDocuments(andquery);
+    var pages = Reportscontrol.setpage(params,totalcount);
+    var rows = [];
+    if (totalcount > 0) {
+        rows=  await wallethistory.find(andquery)
+            .populate({ path : "gameid",select : "TYPE NAME PROVIDERID"})
+            .populate({ path : "paymentid",select :"type"})
+            .populate({ path : "bazaarid" , select :"bazaartype bazaarname"})
+            .populate({ path : "matkabetid", select : "betnumber"})
+            .populate({ path : "bonushisid", select : "bonusid"})
+            .populate({ path : "sportid" })
+            .sort({updated : -1}).skip(pages.skip).limit(pages.limit);
     }
-    if(withdrawl1.length > 0){
-        withdrawl += withdrawl1[0].AMOUNT;
-    }
-    if(deposit2.length > 0){
-        deposit += deposit2[0].AMOUNT;
-    }
-    if(withdrawl2.length > 0){
-        withdrawl += withdrawl2[0].AMOUNT;       
-    }
+    pages["skip2"] = (pages.skip) + rows.length;
 
-    netprofit = deposit - withdrawl - currentplay.balance;
-    var row = Object.assign({},{deposit : deposit.toFixed(0),withdrawl : withdrawl.toFixed(0),netprofit : netprofit.toFixed(0),netbalance : currentplay.balance.toFixed(0)})
-    res.json({status : true,data :row});
+    var newarray = [];
+    for( var i in rows) {
+        var row = Object.assign({},rows[i]._doc ? rows[i]._doc : rows[i] );
+        if (row.paymentid) {
+            row = Object.assign(
+                row,{
+                    PROVIDERID : row.paymentid.type,
+                    TYPE : "CASH",
+                    NAME : row.paymentid.type,
+                }
+            );
+        } else if (row.gameid) {
+            row = Object.assign(
+                row,{
+                    PROVIDERID : row.gameid.PROVIDERID,
+                    TYPE : row.gameid.TYPE,
+                    NAME : row.gameid.NAME,
+                }
+            );
+        } else if (row.bazaarid && row.matkabetid) {
+            row = Object.assign(
+                row,{
+                    PROVIDERID : Sattaconfig.KEY_SATTATYPES[row.bazaarid.bazaartype],
+                    TYPE : row.bazaarid.bazaarname,
+                    NAME : row.matkabetid.betnumber,
+                }
+            );
+        } else if (row.bonushisid) {
+            if (row.bonushisid.bonusid && row.bonushisid.Bonusname) {
+                row = Object.assign(
+                    row,{
+                        NAME : row.bonushisid.bonusid.Bonusname,
+                        PROVIDERID : "Bonus",
+                        TYPE : row.bonushisid.bonusid.Bonusname,
+                    }
+                );
+
+            } else {
+                row = Object.assign(
+                    row,{
+                        NAME : "bonus",
+                        PROVIDERID : "Bonus",
+                        TYPE : "bonus",
+                    }
+                );
+            }
+        } else if (row.sportid) {
+            row = Object.assign(
+                row,{
+                    PROVIDERID : row.sportid.sport_name,
+                    NAME : row.sportsData.OutcomeName,
+                    TYPE : row.sportsData.MatchName,
+                }
+            );
+        }
+        newarray.push(row);
+    }
+    
+    res.json({
+        status : true,
+        data : newarray,pageset : pages,
+    });
     return next();
 }
+
+
 
 exports.get_bets_profit = async (req,res,next) =>{
     let data = req.body;
@@ -1251,121 +1593,62 @@ exports.get_bets_profit = async (req,res,next) =>{
     let start = BASECONTROL.get_stand_date_end(data.start);
     let end = BASECONTROL.get_stand_date_end(data.end);
 
-    var ddd =  DashboardControl.get_Months(start,end);
-    var array = [];
-    for(var j = 0;  j < ddd; j++){
-        await DashboardControl.BettingHistory_model( DashboardControl.get_bettingtable_prefix(start,j)).find({ $and: [ { "DATE": { $gte: start, $lte:end } ,USERID : user._id}] }).then(async betts=>{
-            array.push(betts);
-        });
-    }
-    var casinobets = {BET : 0,WIN : 0,CANCELED_BET: 0};
-    for(var i in array){
-        for(var j in array[i]){
-            casinobets[array[i][j].TYPE] += array[i][j].AMOUNT ? array[i][j].AMOUNT : 0 ;
-        }
-    }
 
-    var totalgrand = (  (casinobets.WIN - casinobets.BET - casinobets.CANCELED_BET)).toFixed(0)
+    var casinobets = {BET : 0,WIN : 0,CANCELED_BET: 0};
+
+  
+        // var totals = await bethistory_model.aggregate(
+        //     [
+        //         {$match: { $and: [{DATE: {$gte: start,$lte:end}, userid :mongoose.Types.ObjectId(user._id) }]}},
+        //         {$group: 
+        //             {  
+        //                 _id: {"TYPE" : "$TYPE"},
+        //                 AMOUNT: {$sum: '$AMOUNT'},
+        //                 COUNT: {$sum: 1},
+        //             }
+        //         }
+        //     ]
+        // )
+        // for(var k in totals){
+        //     casinobets[totals[k]["_id"].TYPE] += totals[k].AMOUNT;
+        //     casinobets["betindex"] += totals[k].COUNT;
+        // }
+
+
+    var totalgrand = (parseInt(casinobets.WIN - casinobets.BET - casinobets.CANCELED_BET))
 
     var sports = {type:"Sportsbook","win-loose" : 0 , Total:0};
     var exchange = {type:"Exchange","win-loose" : 0, Total:0};
     var cardgames = {type:"Card Games","win-loose" : 0, Total:0};
-    var ca_bets = {type : "casino","win-loose" :casinobets.WIN +" - " + (casinobets.BET + casinobets.CANCELED_BET).toFixed(0) , "Total" : (casinobets.WIN - casinobets.BET - casinobets.CANCELED_BET).toFixed(0)};
+    var ca_bets = {type : "casino","win-loose" :casinobets.WIN +" - " + parseInt(casinobets.BET - casinobets.CANCELED_BET) , "Total" : parseInt(casinobets.WIN - casinobets.BET - casinobets.CANCELED_BET)};
     var grands = {type : "Grand Total","win-loose": "-",Total : totalgrand};
     
     var rows = [sports,exchange,cardgames,ca_bets,grands];
     res.json({ status : true,data : rows });
     return next();
 
-    async function get_bazzars_bets(BazaarType){
-        var datas = await BASECONTROL.Bfind(BazaarModel,{status : true,bazaartype : BazaarType});
-        var row = {BET : 0,WIN : 0,CANCELED_BET : 0}
-        for(var j in datas){
-            let bet = 0;
-            let win = 0;
-            var dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : user._id,bazaarid : datas[j]._id, $or : [{status : "2"},{status : "1"}] ,"DATE": { $gte: start ,$lte:end}});
-            if(dd.length > 0){
-                for(var i in dd){
-                    bet += dd[i].amount;
-                }
-            }
-            dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : user._id,bazaarid : datas[j]._id,status : "3","DATE": { $gte: start ,$lte:end}});
-            if(dd.length > 0){
-                for(var i in dd){
-                    win += dd[i].amount;
-                }
-            }
-            row.BET += bet;
-            row.WIN += win;
-        }
-
-        return row     
-    }
-}
-
-
-exports.get_accountstatement = async (req,res,next) =>{
-    let data = req.body.row;
-    let start = BASECONTROL.get_stand_date_end(data.start);
-    let end = BASECONTROL.get_stand_date_end(data.end);
-    let userdata= await BASECONTROL.BfindOne(Users,{email:data.email});
-    // var total ={};
-    // console.log(userdata._id);
-    // console.log(start);
-    // console.log(end);
-    // var tt_data =  await wallethistory.aggregate([
-    //     {$match: { $and: [{updated: { $gte: start ,$lte:end}}]}},
-    //     {$group: { _id: { "USERID": "$USERID"}, 
-    //         debited: {$sum: '$debited'},
-    //         credited: {$sum: '$credited'},
-    //     }}
-    // ]);
-
-    // console.log(tt_data);
-
-    // if(tt_data && tt_data.length > 0){
-    //     tdata = tt_data.find(obj=>obj.USERID == userdata._id);
-    //     if(tdata){
-    //         total = {
-    //             created : tdata.created,
-    //             debited : tdata.debited,
+    // async function get_bazzars_bets(BazaarType){
+    //     var datas = await BASECONTROL.Bfind(BazaarModel,{status : true,bazaartype : BazaarType});
+    //     var row = {BET : 0,WIN : 0,CANCELED_BET : 0}
+    //     for(var j in datas){
+    //         let bet = 0;
+    //         let win = 0;
+    //         var dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : user._id,bazaarid : datas[j]._id, $or : [{status : "2"},{status : "1"}] ,"DATE": { $gte: start ,$lte:end}});
+    //         if(dd.length > 0){
+    //             for(var i in dd){
+    //                 bet += dd[i].amount;
+    //             }
     //         }
+    //         dd = await BASECONTROL.Bfind(matka_betmodels,{USERID : user._id,bazaarid : datas[j]._id,status : "3","DATE": { $gte: start ,$lte:end}});
+    //         if(dd.length > 0){
+    //             for(var i in dd){
+    //                 win += dd[i].amount;
+    //             }
+    //         }
+    //         row.BET += bet;
+    //         row.WIN += win;
     //     }
+
+    //     return row     
     // }
-
-    var resdata =  await BASECONTROL.BSortfind(wallethistory,{updated: { $gte: start ,$lte:end},USERID : userdata._id},{updated : -1});
-    var rows = [];
-    for(var i in resdata){
-        var row = {};
-        let w_item = resdata[i]._doc;
-        switch(w_item.LAUNCHURL){
-            case "cash":
-                row = Object.assign({},w_item,{TYPE : w_item.LAUNCHURL},{NAME : w_item.GAMEID},{PROVIDERID : w_item.GAMEID});
-                rows.push(row);
-            break;
-            case "matka":
-                let ms = (w_item.GAMEID).split(":");
-                let items = await BASECONTROL.BfindOne(BazaarModel,{_id : ms[2]});
-                if(items){
-                    row = Object.assign({},w_item,{TYPE : items.bazaarname},{NAME : ms[0]},{PROVIDERID : "MATKA"});
-                    rows.push(row);
-                }
-            break;
-            default :
-                var g_detail = await BASECONTROL.BfindOne(GAMELISTMODEL,{LAUNCHURL : w_item.LAUNCHURL,ID : w_item.GAMEID });
-                if(g_detail){
-                    let arr = g_detail._doc;
-                    row = Object.assign({},w_item,{TYPE : arr.TYPE},{NAME : arr.NAME},{PROVIDERID : arr.PROVIDERID});
-                    rows.push(row);
-                }
-            break;
-
-
-        }
-
-    }
-    res.json({status : true,data : rows});
-    return next();
 }
-
-

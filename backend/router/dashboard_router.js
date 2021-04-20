@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const DashboardControl = require("../controller/dashboardController")
 const authMiddleware = require("../middleware/middleware/authMiddleware");
+const configMiddleware = require("../middleware/middleware/configMiddleware");
 
-router.post("/revenue_load",authMiddleware.isLoggedIn,DashboardControl.revenue_load);
-router.post("/get_user_load",authMiddleware.isLoggedIn,DashboardControl.get_user_load);
+router.post("/getUserLoad",authMiddleware.isLoggedIn,configMiddleware.homeconfig,DashboardControl.getUserLoad);
 
 module.exports = router;

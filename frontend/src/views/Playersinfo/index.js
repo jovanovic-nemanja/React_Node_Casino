@@ -7,33 +7,57 @@ import Profile from "./profile"
 import Wallet from "./wallet"
 import MyWallet from "./MyWallet"
 import {playerid} from "../../configs/providerconfig"
-import {prefix,appprefix} from "../../authServices/rootconfig"
+import {Root} from "../../authServices/rootconfig"
 import AccountStatement from "./WalletHistory"
 import TotalS from "./wallet/total"
 import {connect} from "react-redux"
+import * as profileAction from "../../redux/actions/profileinfo"
+import queryString from "query-string"
+const prefix = Root.prefix;
 
 class TabsBasic extends React.Component {
   state = {
     activeTab: "4",
     active: "4",
     allData : this.props.location.state,
-  }
-
-  toggleTab = tab => {
-    if (this.state.activeTab !== tab) {
-      this.setState({ activeTab: tab })
-    }
+    date : {
+      start : new Date(),
+      end : new Date(new Date().valueOf() + 24 * 60 * 60 * 1000),
+    },
   }
 
   toggle = tab => {
+    
     if (this.state.active !== tab) {
-      this.setState({ active: tab })
+      this.setState({ active: tab });
+      
+      if (this.state.allData.permission === playerid) {
+        switch(tab){
+          case "1" : 
+          this.props.profile_load(this.state.allData.email);
+          break;
+          case "2" : 
+          this.props.transactionHistoryLoad(this.state.date,this.state.allData,queryString.parse(this.props.location.search))
+          break;
+          case "3" : 
+          this.props.reports_email_load( this.state.date,this.state.allData,queryString.parse(this.props.location.search))
+          break;
+          case "4" : 
+          this.props.get_accountStatement(this.state.date,this.state.allData,queryString.parse(this.props.location.search))
+          break;
+          default:
+          break;
+        }
+      } else {
+
+      }
+    
     }
   }
 
   componentDidUpdate(prevProps, prevState){
-    if(prevProps.userdetail !== this.props.userdetail){
-        this.setState({allData : this.props.userdetail})
+    if (prevProps.userdetail !== this.props.userdetail) {
+      this.setState({allData : this.props.userdetail})
     }
 }
 
@@ -45,7 +69,7 @@ class TabsBasic extends React.Component {
         {
           row && row.email ? 
           <React.Fragment>
-            <Breadcrumbs breadCrumbTitle="Players" breadCrumbParent="Players" breadCrumbParent2={this.state.allData.username} />
+            <Breadcrumbs breadCrumbTitle="Players" breadCrumbParent="Players" breadCrumbParent2={row.username} />
               <Col md="12" className="">
                 <Table responsive bordered >
                   <thead >
@@ -62,7 +86,7 @@ class TabsBasic extends React.Component {
                   </thead>
                   <tbody>
                       <tr >
-                        <td>{row.signup_device ?appprefix : prefix}{row.pid}</td>
+                        <td> { prefix + row.signup_device} {"-"}{row.fakeid}</td>
                         <td>{row.firstname}</td>
                         <td>{row.lastname}</td>
                         <td>{row.email}</td>
@@ -72,8 +96,8 @@ class TabsBasic extends React.Component {
                           {row.status}
                         </Badge>
                         </td>
-                        <td>{ row.balance ? parseFloat(row.balance).toFixed(0) : "0" }</td>
-                        <td>{ row.bonusbalance ? parseFloat(row.bonusbalance).toFixed(0) : "0" }</td>
+                        <td>{ row.playerid && row.playerid.balance ? (row.playerid.balance).toFixed(0) : "0" }</td>
+                        <td>{ row.playerid && row.playerid.bonusbalance ? (row.playerid.bonusbalance).toFixed(0) : "0" }</td>
                       </tr>
                   
                   </tbody>
@@ -133,16 +157,16 @@ class TabsBasic extends React.Component {
                 this.state.allData.permission === playerid ?
                   <>
                    <TabPane tabId="4" className="h-100">
-                      <AccountStatement  user={this.props.location.state}/>
+                      <AccountStatement parsedFilter={queryString.parse(this.props.location.search)} user={this.props.location.state}/>
                     </TabPane>
                     <TabPane tabId="1">
                       <Profile user={this.props.location.state} />
                     </TabPane>
                     <TabPane tabId="2" className="h-100">
-                      <Wallet user={this.props.location.state} />
+                      <Wallet user={this.props.location.state} parsedFilter={queryString.parse(this.props.location.search)}  />
                     </TabPane>
                     <TabPane tabId="3" className="h-100">
-                      <Bets  user={this.props.location.state}/>
+                      <Bets  user={this.props.location.state} parsedFilter={queryString.parse(this.props.location.search)}/>
                     </TabPane>
                    
                   </> :
@@ -169,8 +193,6 @@ const mapStateToProps = (state) => ({
 
 })
 
-const mapDispatchToProps = {
-  
-}
 
-export default connect(mapStateToProps, mapDispatchToProps)(TabsBasic)
+
+export default connect(mapStateToProps, profileAction)(TabsBasic)

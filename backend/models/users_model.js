@@ -1,14 +1,13 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt');
+const basecontroller = require("../controller/time")
 
 const users = () =>{
     var  UserSchema = new Schema({
         fakeid : { type : Number },  
-        id : { type : Number },
-        operatorID : { type : String },
-        date: { type: Date, default: Date.now },
-        updatedAt: { type: Date, default: Date.now },
+        date: { type: Date,  },
+        updatedAt: { type: Date,  },
         email : { type : String, required : true,unique: true,},
         username: { type: String, unique: true, required: [true, "username is required"] },
         password: {
@@ -28,7 +27,8 @@ const users = () =>{
         status : { type : String, required : true },    
         created : {type : String, required : true },
         positiontaking : {type :Number,default : 0},
-        signup_device : { type : Boolean, default : false },
+        signup_device : { type : String, },
+        botdevice : { type : String, },
         isdelete : { type : Boolean, default : false },
 
         currency : { type : String, default : "INR" },
@@ -97,6 +97,7 @@ const users = () =>{
 
         idverify : {type : Boolean,default : false},
         resident : { type : Boolean, default : false },
+        emailverify : { type : Boolean, default : false },
         playerid : { type: Schema.Types.ObjectId, ref: 'user_players' },
         permissionid : { type: Schema.Types.ObjectId, ref: 'user_role' },
     });
@@ -106,12 +107,13 @@ const users = () =>{
     }
       
     UserSchema.methods.validPassword = function (password, encrypted) {
-        console.log('password', password);
         return bcrypt.compareSync(password, encrypted);
     }
-
+    
+    
     UserSchema.pre('save', function() {
         this.set({ fakeid: get_max_id() });
+        this.set({ date: basecontroller.Indiatime() });
     });
 
     UserSchema.pre('find', function () {
@@ -126,7 +128,7 @@ const users = () =>{
             "signup_device",
             "isdelete",
             "gender",
-            "mobilenumber","permission","avatar","fakeid","date", "operatorID"
+            "mobilenumber","permission","avatar","fakeid","date","address","botdevice",'language'
         ]);
     });
    
@@ -143,15 +145,15 @@ const users = () =>{
             "signup_device",
             "isdelete",
             "gender",
-            "mobilenumber","permission","avatar","fakeid","date", "operatorID"
+            "mobilenumber","permission","avatar","fakeid","date","address","botdevice","language"
         ]);
     });
 
     UserSchema.pre('findOneAndUpdate', function() {
-        this.set({ updatedAt: new Date() });
+        this.set({ updatedAt: basecontroller.Indiatime()});
     });
     UserSchema.pre('updateOne', function() {
-        this.set({ updatedAt: new Date() });
+        this.set({ updatedAt: basecontroller.Indiatime() });
     });
 
    
@@ -205,7 +207,7 @@ const Players = ()=>{
             default : 0
         },
     });
-
+    
     UserSchema.pre('save', function() {
         this.set({ pid: get_max_id() });
     });
@@ -262,7 +264,7 @@ const admin_them = () =>{
         },
         email :{
             type: String,
-            default : "ltr"
+            default : ""
         }
     });
     return mongoose.model("user_theme", UserSchema)
@@ -274,35 +276,52 @@ const sessionmodel = () =>{
             type: String,
             required : true
         },
-        id: {
+        chatid: {
             type: String,
             required : true
         },
-        
+        id: {
+            required : true,
+            type: Schema.Types.ObjectId, ref: 'user_users'
+        },
+        date: {
+            type: Date,
+        },
     });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
+    });
+
     return mongoose.model("user_socket", UserSchema)
 }
 
 
 const usersesmodel = () =>{
     var  UserSchema = new Schema({
-        date: {
-            type: Date,
-            default: Date.now
-        },
-        hash : {
-            type :String,
-            required : true
-        },
+       
+       
         inittime : {
-            type: String,
-            required: true
+            required: true,
+            type: Date,
         },
         email: {
             type: String,
-            unique: false,
+            unique: true,
+            required: true
         },
-       
+        id: {
+            type: Schema.Types.ObjectId, ref: 'user_users',
+        },
+        ip: {
+            type: String,
+        },
+        socketuser: {
+            type: Schema.Types.ObjectId, ref: 'user_socket',
+        },
+    });
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("user_session", UserSchema)
 }
@@ -331,20 +350,23 @@ const gamesessionmodel = () =>{
         },
         date: {
             type: Date,
-            default: Date.now
         },
         token : {
             type :String,
             required : true
         },
         intimestamp : {
-            type: String,
+            type: Date,
             required: true
         },
         id :{
             type: String,
             required: true
         },
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("user_gamesession", UserSchema)
 }
@@ -380,77 +402,7 @@ const playerlimitModel = () =>{
     return mongoose.model("user_plimit", UserSchema)
 }
 
-const balance_histoy = () =>{
-    var  UserSchema = new Schema({
-        email: {
-            type: String,
-            required: true
-        },
-        commission : { type : Number, default : 0 },
-        username: {
-            type: String,
-            required: true
-        },
-        date: {
-            type: Date,
-            default: Date.now
-        },
-        createDate: {
-            type: Date,
-            default: Date.now
-        },
-        transactionDate : {
-            type: Date,
-            default: Date.now
-        },
-        amount : {
-            type : Number,
-            required : true
-        },
-        type : {
-            type : Number,
-            required : true
-        },
-        amounttype : {
-            type : Number,
-            required : true
-        },
-        cemail : {
-            type : String,
-            required : true
-        },
-        order_no : {
-            type : String,
-            required : true
-        },
-        currency :{
-            type : String,
-            default : "INR"
-        },
-        status : {
-            type : String,
-            default : "success"            
-        },
-        paymentType : {
-            type : String,
-            default : "admin"  
-        },
-        comment : {
-            type : String,
-            default : ""
-        },
-        lastbalance : {
-            type : Number,
-            required : true
-        },
-        updatedbalance : {
-            type : Number,
-            required : true
-        }
-        
-    });
-    return mongoose.model("user_balancehistory", UserSchema)
-}
+
 
 const permission_model = () =>{
     var  UserSchema = new Schema({
@@ -488,9 +440,12 @@ const totalusermodel = () =>{
         },
         date: {
             type: Date,
-            default: Date.now
         },
 
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
     });
     return mongoose.model("user_totalloginusers", UserSchema);
 }
@@ -503,10 +458,13 @@ const totalgamesusermodel = () =>{
         },
         date: {
             type: Date,
-            default: Date.now
         },
 
     });
+    UserSchema.pre('save', function() {
+        this.set({ date: basecontroller.Indiatime() });
+    });
+
     return mongoose.model("user_totalgamesusers", UserSchema);
 }
 
@@ -567,14 +525,18 @@ const wallethistory_model = () =>{
             type: String,
             required : true
         },
-        GAMEID : {
-            type : String,
-            required : true,
+        bonus : {
+            type :Boolean,
+            default :false
         },
-        LAUNCHURL : {
-            type : String,
-            required : true,
-        },
+        // GAMEID : {
+        //     type : String,
+        //     required : true,
+        // },
+        // LAUNCHURL : {
+        //     type : String,
+        //     required : true,
+        // },
         status :{
             type : String,
             required : true,
@@ -583,10 +545,35 @@ const wallethistory_model = () =>{
             type : Number,
             required : true
         },
-        USERID : {
-            type : String,
-            required : true
+        gameid : {
+            type: Schema.Types.ObjectId, ref: 'game_game_list',
         },
+        sportid : {
+            type: Schema.Types.ObjectId, ref: 'sports_list',
+        },
+        sportsData : {
+            type: Object,
+        },
+        userid : {
+            type: Schema.Types.ObjectId, ref: 'user_users',
+        },
+        paymentid : {
+            type: Schema.Types.ObjectId, ref: 'Payment_history',
+        },
+        bazaarid : {
+            type: Schema.Types.ObjectId, ref: 'matka_Bazaar',
+        },
+        matkabetid : {
+            type: Schema.Types.ObjectId, ref: 'matka_betmodels',
+        },
+        bonushisid : {
+            type: Schema.Types.ObjectId, ref: 'promotion_bonushistory',
+        },
+        
+        // USERID : {
+        //     type : String,
+        //     required : true
+        // },
         commission : {
             type : Number,
             required : true
@@ -605,13 +592,11 @@ const wallethistory_model = () =>{
         },
         updated : {
             type: Date,
-            default: Date.now
         },
-        id : {
-            type : Date,
-            default: Date.now
-        }
-        
+    });
+
+    UserSchema.pre('save', function() {
+        this.set({ updated: basecontroller.Indiatime() });
     });
     return mongoose.model("user_wallethistory", UserSchema);
 }
@@ -640,6 +625,10 @@ const profilemenu_model = () =>{
             type : Boolean,
             required : true
         },
+        mobilestatus : {
+            type : Boolean,
+            required : true
+        },
         pid : {
             type : String,
             required : true
@@ -655,41 +644,34 @@ const profilemenu_model = () =>{
         order : {
             type : Number,
             required : true
+        },
+        mobileicon : {
+            type : String,
+            required : true
         }
     });
     return mongoose.model("user_profilemenu", UserSchema);
 }
 
-const pokergrid_api = () => {
+
+const friendModel = () =>{
     var  UserSchema = new Schema({
-        id : {
-            type : String,
-            required : true,
-            unique  :true,
+       
+        FriendUserId : {
+            type: Schema.Types.ObjectId, ref: 'user_users'
         },
-        authenticateURL : {
-            type : String,
+        UserId : {
+            type: Schema.Types.ObjectId, ref: 'user_users'
+        },
+        UserEmail : {
+            type: String,
             required : true
         },
-        creditURL : {
-            type : String,
-            required : true
-        },
-        debitURL : {
-            type : String,
-            required : true
-        },
-        homeURL : {
-            type : String,
-            required : true
-        },
-        updateSessionURL : {
-            type : String,
-            required : true
-        }
+        
     });
-    return mongoose.model("user_poker_api", UserSchema);
+    return mongoose.model("user_friendModel", UserSchema);
 }
+
 
 module.exports  = {
     totalusermodel : totalusermodel(),
@@ -701,10 +683,11 @@ module.exports  = {
     GamePlay : Players(),
     gamesessionmodel : gamesessionmodel(),
     playerlimit : playerlimitModel(),
-    balance_histoy : balance_histoy(),
+    // balance_histoy : balance_histoy(),
     permission_model : permission_model(),
     sidebarmodel : sidebarmodel(),
     wallethistory : wallethistory_model(),
     profilemenu : profilemenu_model(),
-    pokergridApi: pokergrid_api()
+    friendModel : friendModel(),
+
 }

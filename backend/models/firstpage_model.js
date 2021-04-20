@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+
 const SliderIMGModel = () =>{
     var  UserSchema = new Schema({
         order: {
@@ -18,7 +19,10 @@ const SliderIMGModel = () =>{
         bool  :{
             type : String,
             required  :true,
-        }
+        },
+        gameid : {
+            type: Schema.Types.ObjectId, ref: 'game_game_list',
+        },
     });
     return mongoose.model("tbl_SliderIMGModel", UserSchema)
 }
@@ -32,6 +36,9 @@ const firstMenuModel = () =>{
         title:{
             type : String,
             default : ''
+        },
+        image : {
+            type :  String
         },
         navLink:{
             type : String,
@@ -66,8 +73,7 @@ const firstpagesetting = () =>{
             default : ""
         },
         content: {
-            type: String,
-            default : ''
+            type: Object,
         }
     });
     return mongoose.model("tbl_firstpagesetting", UserSchema)
@@ -93,6 +99,24 @@ const FirstpageProviderImg = () =>{
     return mongoose.model("tbl_firstpageProviderImg", UserSchema)
 }
 
+const appversionmodel = () =>{
+    var  UserSchema = new Schema({
+        versionName:{
+            type : String,
+            default : ''
+        },
+        apkUrl:{
+            type : String,
+            default : ''
+        },
+        versionCode:{
+            type : String,
+            default : ''
+        },
+        createAt: { type: Date,default: Date.now, }
+    });
+    return mongoose.model("settingappversion", UserSchema)
+}
 
 module.exports = {
     SliderIMGModel : SliderIMGModel(),
@@ -100,4 +124,5 @@ module.exports = {
     FirstpagePaymentMethodImg : FirstpagePaymentMethodImg(),
     firstpagesetting : firstpagesetting(),
     firstMenuModel : firstMenuModel(),
+    appversionmodel : appversionmodel()
 };

@@ -1,6 +1,5 @@
-import {AXIOS_REQUEST,set_page,Set_reducer} from "../auth/index"
+import {AXIOS_REQUEST,Set_reducer} from "../auth/index"
 import {toast} from "react-toastify"
-
 
 export const getData = (params) => {
   return  async(dispatch) => {
@@ -11,9 +10,11 @@ export const getData = (params) => {
         for(var i = 0 ; i < permission.length ; i ++)
         {
           let temp = {};
-          temp.value = permission[i].id;
-          temp.label = permission[i].title;
-          temp_permission.push(temp);
+          // if(permission[i].id !== playerid){
+            temp.value = permission[i].id;
+            temp.label = permission[i].title;
+            temp_permission.push(temp);
+          // }
         }
         // temp_permission.push({value :playerid,label : "players"})
         dispatch({ type: "PERMISSION_LOAD", data: temp_permission })
@@ -36,12 +37,13 @@ export const block_getData = (params,filterData) => {
 }
 
 
-export const filterData = (value,bool) => {
-  return dispatch => dispatch({ type: "USER_FILTER_DATA", value : value,bool : bool })
+export const filterData = (value,bool, params) => {
+  return dispatch => dispatch({ type: "USER_FILTER_DATA", value,bool,params})
 }
 
 export const signup = (users,params) => {
   return async(dispatch) =>{
+    console.log(users)
     var rdata =  await AXIOS_REQUEST("users/adminregister",{user : users},dispatch,true)
       if(rdata.status){
         toast.success("success");
@@ -139,9 +141,7 @@ export const pagenationchange = (params)=>{
     var row = {
       data : getState().userslist.users.allData
     }
-    var rows =  set_page(params,row)
-    var fdata = rows['fdata'];
-    var totalPages = rows['totalPages'];
-    dispatch({ type:"USER_SET_PAGENATION",data: fdata,totalPages:totalPages,params})
+    Set_reducer(dispatch,params,row,"USER_GET_DATA");
+
   }
 }

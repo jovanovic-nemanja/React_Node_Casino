@@ -1,4 +1,3 @@
-import {getIndex} from "../../actions/auth/index"
 
 const initialState = {
     data: [],
@@ -17,33 +16,14 @@ const initialState = {
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
-          params: action.params,
-          sortIndex: getIndex(
-            action.alldata,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
           totalRecords: action.alldata.length,
-          allData: action.alldata,
-          count : action.count
-        }
-
-      case "REALTIME_SET_PAGENATION":
-        return {
-          ...state,
-          data: action.data,
-          totalPages: action.totalPages,
           params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
-        
+        // count : action.count
+
       case "REALTIME_FILTER_DATA":
         let value = action.value
         let filteredData = []

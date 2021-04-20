@@ -1,81 +1,119 @@
 const CryptoJS = require('crypto-js');
 const BASECONTROL = require("../basecontroller");
-const moment= require('moment');
-const { BalanceUpdate, PayoutOrder } = require("./init")
 const { GamePlay } = require("../../models/users_model");
-const { Paymentconfig, TransactionsHistory, WithdrawHistory, PaymentMethod } = require("../../models/paymentGateWayModel");
-const PAYMENTCONFIG = require("../../config/paymenterror.json");
+const { TransactionsHistory ,PaymentMenuModel, paymentuserdetail, PaymoroSubmitData} = require("../../models/paymentGateWayModel");
 var mongoose = require('mongoose');
+const request = require("request")
+const home = require("../../servers/home.json")
+const Paymorocontrol = require("./paymoro")
+const PCONFIG = require("../../config/pconfig")
+
 
 exports.YaarPayCheckOut = async(req,res,next)=>{
 
-    var { type, depositBankCode, bankType, amount, first_name, last_name, email } = req.body.params;
-    var yarpayconfig = await BASECONTROL.BfindOne(Paymentconfig,{type : PAYMENTCONFIG.PaymentconfigType.YaarPay,state : true});
-    if(!yarpayconfig){
+
+    var {paymentmenuid , depositBankCode} = req.body.params;
+    var amount = parseInt(req.body.params.amount)
+    var { email ,_id} =req.user;
+    let pmenuitem = await PaymentMenuModel.findOne({_id : paymentmenuid}).populate("paymentconfigurationid");
+    if (!pmenuitem) {
         return res.json({ status : false, data: 'We are sorry. Please contact to administrator.' });
-    }else{
-        var { merchant_id, merchant_key, application_id, request_url, notify_url2, notify_url, return_url2, return_url } = yarpayconfig.configData;
-        var currency = 'inr';
-        var version = '1.0';
-        var orderNO = "yaarpay-" + new Date().valueOf();
-        var hashstring='';
-        var transactiondata = {  type,  email,  order_no : orderNO, status : PAYMENTCONFIG.PaymentStatus_bool.pending,
-            amount, requestData : req.body.params,wallettype : "DEPOSIT",
+    } else {
+        await BASECONTROL.BfindOneAndUpdate(paymentuserdetail,{userid : mongoose.Types.ObjectId(_id),paymentconfigid : paymentmenuid},{paymentData : {depositBankCode : depositBankCode}});
+
+
+        var { merchant_id, merchant_key, application_id, request_url, notify_url, return_url,currency ,version } = pmenuitem.paymentconfigurationid.configData;
+        var type = pmenuitem.paymentconfigurationid.type;
+        var bankType = pmenuitem.paymentType;
+        var orderNO = type + ":" + new Date().valueOf();
+        var transactiondata = {  type,  email,  order_no : orderNO, status : PCONFIG.Pending,
+            amount, requestData : {},wallettype : "DEPOSIT",
             userid : mongoose.Types.ObjectId(req.user._id)
         }
         var yaar_amount =  (parseInt(amount)*100).toString();
-        switch (bankType){
-            // case PAYMENTCONFIG.PAYMENTS.YaarPay1:
-            //     var notify_urls =  notify_url2;
-            //     var return_urls = depositBankCode=='YP_AXIS'? return_url2 : return_url;
-            //     hashstring='amount='+(parseInt(amount)*100)+
-            //     '&appId='+application_id+
-            //     "&channelId="+bankType+
-            //     "&currency="+currency+
-            //     "&depositBankCode="+depositBankCode+
-            //     "&depositName="+first_name+" "+last_name+
-            //     "&mchId="+merchant_id+
-            //     "&mchOrderNo="+orderNO+
-            //     "&notifyUrl="+notify_urls+
-            //     "&returnUrl="+return_urls+
-            //     "&version="+version+
-            //     "&key="+merchant_key;
-            //     transactiondata = Object.assign({}, transactiondata, {resultData:{
-            //         orderAmount : amount,
-            //         currency,
-            //         status : PAYMENTCONFIG.PAYMENTSTATUS.processing,
-            //         depositBankCode : depositBankCode
-            //     }});
 
-            // break;
-            case PAYMENTCONFIG.PAYMENTS.YaarPay:
-                var notify_urls = notify_url;
-                var return_urls = return_url + "?order_no=" + orderNO;
-                hashstring= 'amount=' +yaar_amount +
-                '&appId=' + application_id +
-                "&channelId=" + bankType +
-                "&currency=" + currency +
-                "&depositBankCode=" + depositBankCode +
-                "&mchId=" + merchant_id +
-                "&mchOrderNo=" + orderNO +
-                "&notifyUrl=" + notify_urls +
-                "&returnUrl=" + return_urls +
-                "&version=" + version +
-                "&key=" + merchant_key;
-            break;
+        var notify_urls = notify_url;
+        if (req.headers["user-device"] == "telegram") {
+            var return_urls = return_url + "?order_no=" + orderNO + "&paymentmenuid=" + paymentmenuid + "&telegram=true";
+        } else {
+            var return_urls = return_url + "?order_no=" + orderNO + "&paymentmenuid=" + paymentmenuid + "&telegram=false";            
         }
-        
+        var hashstring= 'amount=' +yaar_amount +
+            '&appId=' + application_id +
+            "&channelId=" + bankType +
+            "&currency=" + currency +
+            "&depositBankCode=" + depositBankCode +
+            "&mchId=" + merchant_id +
+            "&mchOrderNo=" + orderNO +
+            "&notifyUrl=" + notify_urls +
+            "&returnUrl=" + return_urls +
+            "&version=" + version +
+            "&key=" + merchant_key;
+
         let sign = CryptoJS.MD5(hashstring).toString().toUpperCase();
         let successData={ mchOrderNo:orderNO, version,  channelId:bankType, amount: yaar_amount, currency:currency,
             mchId:merchant_id, appId:application_id, notifyUrl:notify_urls, returnUrl:return_urls,
             sign, depositBankCode, }
 
-        var error = await BASECONTROL.data_save(transactiondata,TransactionsHistory)
-        if(!error){
-            return res.json({status : false, data : "failed"})
-        }else{
-            return res.json({status : true, data : successData, request_url: request_url})
+        let formdata =  {
+            mchId : successData.mchId,
+            depositBankCode : successData.depositBankCode,
+            mchOrderNo : successData.mchOrderNo,
+            appId : successData.appId,
+            amount : successData.amount,
+            channelId : successData.channelId,
+            currency : successData.currency,
+            notifyUrl : successData.notifyUrl,
+            returnUrl : successData.returnUrl,
+            version : successData.version,
+            sign : successData.sign,
         }
+
+        var options = {
+            'method': 'POST',
+            'url': request_url,
+            'headers': {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            form: formdata
+        };
+        request(options, async function (error, response) {
+            if (error) {
+                return res.json({status : false, data : "failed"})
+            } else {
+                if (response.statusCode == 200) {
+
+
+                    console.log(JSON.parse(response.body))
+                    try {
+                        let row = JSON.parse(response.body);
+                        let error = getErrorString(row.errCode);
+                        return res.json({status : false, data : error});
+                    } catch(e) {
+                        console.log(response.body)
+                        return res.json({status : false, data : "failed"})
+                        return;
+                        let formstring =  response.body;
+                        let paymoro = {
+                            content : formstring,
+                            order_no : orderNO,
+                            date : new Date(new Date().valueOf() + 24 * 60 * 60 * 1000)
+                        }
+                        var tanshis = await BASECONTROL.data_save(transactiondata,TransactionsHistory)
+                        var pxnsave = await BASECONTROL.data_save(paymoro,PaymoroSubmitData);
+                        if (tanshis && pxnsave) {
+                            var redirect = new URL(home.homedomain + "/PaymentGateway/yaarpaysubmit");
+                            redirect.searchParams.append("orderno", orderNO);
+                            return res.json({status : true, data : redirect['href']})
+                        } else {
+                            return res.json({status : false, data : "failed"})
+                        }
+                    }
+                } else {
+                    return res.json({status : false, data : "failed"})
+                }
+            }
+        });
     }
 }
 
@@ -83,10 +121,16 @@ exports.YaarReturn = async(req,res,next)=>{
 
     console.log(req.url);
     var indata = BASECONTROL.urlparse(req.url);
-    var yaarconfig = await BASECONTROL.BfindOne(Paymentconfig,{type : PAYMENTCONFIG.PaymentconfigType.YaarPay});
+    var yaarconfig = await BASECONTROL.BfindOne(PaymentMenuModel,{_id : indata.paymentmenuid}).populate("paymentconfigurationid");
     var txnhis = await BASECONTROL.BfindOne(TransactionsHistory,{order_no : indata.order_no});
     if(yaarconfig && txnhis){
-        var redirect = new URL(yaarconfig.configData.redirect_url);
+        var redirect_url = "";
+        if (indata.telegram) {
+            redirect_url = yaarconfig.paymentconfigurationid.configData.telegramreturnurl;
+        } else {
+            redirect_url = yaarconfig.paymentconfigurationid.configData.redirect_url;            
+        }
+        var redirect = new URL(redirect_url);
         redirect.searchParams.append("order_no", txnhis.order_no);
         redirect.searchParams.append("amount", txnhis.amount);
         redirect.searchParams.append("status", txnhis.status);
@@ -96,6 +140,7 @@ exports.YaarReturn = async(req,res,next)=>{
 }
 
 exports.YaarNotyfy = async(req,res,next)=>{
+
     var { mchOrderNo, status } = req.body;
     var updata = { resultData : req.body };
     status += "";
@@ -104,8 +149,8 @@ exports.YaarNotyfy = async(req,res,next)=>{
     if(tnshi && userdata){
         if(status == "2"){
 
-            if(tnshi.status != PAYMENTCONFIG.PaymentStatus_bool.Approve){
-                updata["status"] = PAYMENTCONFIG.PaymentStatus_bool.Approve;
+            if(tnshi.status != PCONFIG.Approve){
+                updata["status"] = PCONFIG.Approve;
                 updata["lastbalance"] = userdata.balance;
                 // const { fee } = await PaymentMenuModel.findOne({type :"YaarPay"})
                 // var amount = parseFloat(tnshi.amount) - parseFloat(tnshi.amount) * parseFloat(fee)/100
@@ -115,184 +160,130 @@ exports.YaarNotyfy = async(req,res,next)=>{
                     status :"DEPOSIT",
                     roundid :mchOrderNo,
                     transactionid : mchOrderNo,
-                    LAUNCHURL : "cash",
-                    GAMEID : "YaarPay",
-                    USERID : userdata.id,
+                    userid : mongoose.Types.ObjectId(userdata.id),
                     credited : tnshi.amount,
                     debited : 0,
-                    lastbalance : userdata.balance
+                    lastbalance : userdata.balance,
+                    paymentid : mongoose.Types.ObjectId(tnshi._id)
                 }
+
+            
                 
-                var current = await BASECONTROL.email_balanceupdate(email, tnshi.amount,wallets);
+                var current = await BASECONTROL.email_balanceupdate(tnshi.email, tnshi.amount,wallets);
                 updata["updatedbalance"] = current;
             }
             //  await BalanceUpdate(tnshi.email, tnshi.amount,mchOrderNo,wallets_);
         }else{
-            updata["status"] = PAYMENTCONFIG.PaymentStatus_bool.Reject;
+            updata["status"] = PCONFIG.Reject;
             updata["lastbalance"] = userdata.balance;
             updata["updatedbalance"] = userdata.balance;
         }
-        await BASECONTROL.BfindOneAndUpdate(TransactionsHistory,{ order_no : mchOrderNo}, updata);
+
+        updata["order_no"] = tnshi.order_no;
+        updata["userid"] = tnshi.userid;
+        updata["amount"] = tnshi.amount;
+        // await BASECONTROL.BfindOneAndUpdate(TransactionsHistory,{ order_no : mchOrderNo}, updata);
+        Paymorocontrol.transactionUpdate( updata);
+
     }
-    return res.send('OK')
+    return res.status(200).send()
 }
 
-exports.YaarResults = async(req,res,next)=>{
-    const { order_no } = req.body
-    let transactionsHistory = await TransactionsHistory.findOne({ 'resultData.payOrderId' : order_no, type:'YaarPay' })
-    if(!transactionsHistory){
-        return res.json({ status : false, data: 'failed' })
-    }else{  
-        return res.json({ status : true, data : transactionsHistory })
+exports.YaarPayPayout = async(amount,activepayoutchannel,itemuser,callback)=>{
+
+    let accountname = itemuser.paymentData.accountName;
+    var accountnumber = itemuser.paymentData.accountNumber
+    var bankifsc = itemuser.paymentData.IfscCode;
+    // var payoutBankCode = "YP_ICICI";
+    var payoutBankCode = activepayoutchannel.bank;
+    
+    var reqTime = new Date().valueOf();
+    var orderNO = activepayoutchannel.paymentconfigurationid.type + ":" + reqTime;
+    const { merchant_id, merchant_key, payout_request_url, payout_notify_url } = activepayoutchannel.paymentconfigurationid.configData;
+    console.log(activepayoutchannel.paymentconfigurationid.configData)
+    var rawSign=
+    'accountName=' + accountname+
+    '&accountNo=' + accountnumber +
+    "&amount=" + ((amount)*100)+
+    "&ifscCode=" + bankifsc +
+    "&mchId="+ merchant_id +
+    "&mchOrderNo=" + orderNO +
+    "&notifyUrl=" + payout_notify_url +
+    "&payoutBankCode=" + payoutBankCode +
+    "&reqTime=" + reqTime +
+    "&key=" + merchant_key;
+
+    var sign = CryptoJS.MD5(rawSign)
+    sign = sign.toString().toUpperCase()  
+    var successData={
+        mchId : merchant_id,
+        notifyUrl : payout_notify_url,
+        mchOrderNo : orderNO,
+        reqTime : reqTime,
+        sign : sign,
+        accountName : accountname,
+        accountNo : accountnumber,
+        amount : ((amount)*100).toString(),
+        payoutBankCode : payoutBankCode,
+        ifscCode : bankifsc,
     }
-}
 
-exports.YaarPayWithdraw = async(req,res,next)=>{
-    var data = req.body;
-    let balanceData = await BASECONTROL.BfindOne(GamePlay,{email : data.email});
-    if(parseFloat(balanceData.balance)>parseFloat(data.amount)){
-
-        let type = data.type+'-'+ data.bankType;
-        let paymentMethodData = { email:data.email, type, paymentData:data };
-        await PaymentMethod.findOneAndUpdate({type, email:data.email}, paymentMethodData, { upsert: true }, async(err)=>{
-            if(err){
-                return res.json({status:false, data:"failed"})
-            }else{
-                var  err1 = await BASECONTROL.data_save(data,WithdrawHistory);
-                if(!err1){
-                    return res.json({status : false, data : "failed"})
-                }else{
-                    return res.json({status : true, data : "Success"})
-                }
-            }
-        })
-    }else{
-        return res.json({status : false, data : "You cannot withdraw many than the balance amount."})
-    }
-}
-
-exports.YaarNotyfy3 = async(req,res,next)=>{
-    // var data = req.body
-    // let resultData = await TransactionsHistory.findOneAndUpdate({order_no:data.mchOrderNo, resultData:null}, {resultData:Object.assign({}, data, {completedTime:(new Date)})})
-    // if(!resultData){
-    //     return res.status(500)
-    // }else{
-    //     var status = data.status.toString().toLowerCase()
-    //     if(status==2){
-    //         // const { fee } = await PaymentMenuModel.findOne({type :"YaarPay"})
-    //         // var amount = parseFloat(transactionsHistory.amount) - parseFloat(transactionsHistory.amount) * parseFloat(fee)/100
-    //         var amount = parseFloat(transactionsHistory.amount);
-    //         var userdata = await BASECONTROL.BfindOne(GamePlay,{email : transactionsHistory.email})
-    //         var wallets_ = {
-    //             commission:0,
-    //             status :"DEPOSIT",
-    //             roundid :mchOrderNo,
-    //             transactionid : mchOrderNo,
-    //             LAUNCHURL : "cash",
-    //             GAMEID : "YaarPay",
-    //             USERID : userdata.id,
-    //             credited : amount,
-    //             debited : 0,
-    //             lastbalance : userdata.balance
-    //         }
-
-    //         await BalanceUpdate(transactionsHistory.email, amount,data.mchOrderNo,wallets_)
-    //     }
-    //     return res.status(200)
-    // }
-}
-
-exports.YaarPayPayout = async(req,res,next,mainuser)=>{
-    var data = req.body;
-    const { status, email, amount } = req.body;
-    if(status=="payout"){
-        let balanceData = await BASECONTROL.BfindOne(GamePlay,{email : email});
-        if(parseFloat(balanceData.balance) > parseFloat(amount)){
-            var pay_ConFig = await BASECONTROL.BfindOne(Paymentconfig,{ type : data.type });
-                if(!pay_ConFig){
-                    res.json({ status : false, data: 'fail' })
-                    return next()
-                }else if(!pay_ConFig.state){
-                    res.json({ status : false, data: 'YaarPay has been disabled.' })
-                    return next()
-                }else{
-                    var reqTime = new Date().valueOf();
-                    var orderNO = "YaarPayOut-" + moment(new Date()).format('YYYYMMDDhhmmss')
-                    const { merchant_id, merchant_key, request_url, notify_url } = pay_ConFig.configData
-                    var rawSign=
-                        'accountName='+data.payoutData.accountName+
-                        '&accountNo='+data.payoutData.accountNo+
-                        "&amount="+(parseFloat(amount)*100)+
-                        "&ifscCode="+data.payoutData.ifscCode+
-                        "&mchId="+merchant_id+
-                        "&mchOrderNo="+orderNO+
-                        "&notifyUrl="+notify_url+
-                        "&payoutBankCode="+data.payoutData.payoutBankCode+
-                        "&reqTime="+reqTime+
-                        "&key="+merchant_key
+    console.log(successData)
         
-                    var sign = CryptoJS.MD5(rawSign)
-                        sign = sign.toString().toUpperCase()  
-                    var successData={
-                        mchId:merchant_id,
-                        notifyUrl:notify_url,
-                        mchOrderNo:orderNO,
-                        reqTime:reqTime,
-                        sign:sign,
-                        accountName:data.payoutData.accountName,
-                        accountNo:data.payoutData.accountNo,
-                        amount:""+(parseFloat(amount)*100),
-                        payoutBankCode:data.payoutData.payoutBankCode,
-                        ifscCode:data.payoutData.ifscCode,
-                    }
-                    var transactiondata = {
-                        type : data.type,
-                        email : data.email,
-                        order_no : orderNO,
-                        status : PAYMENTCONFIG.WalletType_STRING.Withdrawl,
-                        amount : amount,
-                        requestData : data
-                    }
-                    var options = {
-                        'method': 'POST',
-                        'url': request_url,
-                        "accept-charset":"UTF-8",
-                        'headers': {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        form:successData
-                    }
-                    request.post(options, async (error, response) => {
-                        if (error){
-                            res.json({ status : false, data: 'fail' })
-                            return next()
-                        }else{
-                            var outdata = JSON.parse(response.body)
-                            if(outdata.retCode=="101"){
-                                res.json({ status : false,  data: ERRORCONFIG.yaarpayouterrcode[outdata.errCode]})
-                                return next()
-                            }else if(outdata.retCode=="100"){
-                                var s_data = await BASECONTROL.data_save(transactiondata,TransactionsHistory)
-                                if(!s_data){
-                                    return res.json({status : false, data : "failed"});
-                                }else{
-                                    await BASECONTROL.BfindOneAndUpdate(WithdrawHistory,{ _id : data._id},{status: 'processing',updated_mail : mainuser.email}, )
-                                    await BASECONTROL.email_balanceupdate(data.email, parseFloat(amount) * -1);
-                                    return res.json({ status : true, data:'processing'})
-                                }
-                            }else{
-                                res.json({status :false ,data : "error"});
-                                return next();
-                            }
-                        }  
-                    })
-                }
-        }else{
-            res.json({status : false, data : "You cannot Payout many than the balance amount."})
-            return next()
-        }
-    }else{
-        await PayoutOrder(req,res,next,mainuser)
+    var options = {
+        'method': 'POST',
+        'url': payout_request_url,
+        "accept-charset":"UTF-8",
+        'headers': {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        form:successData
     }
+    request.post(options, async (error, response) => {
+        if (error){
+           callback({status : false , error : "Yaarpay channel error"});
+        }else{
+            var outdata = JSON.parse(response.body)
+            console.log(outdata)
+            if(outdata.retCode == "101"){
+                let error = getErrorString(outdata.errCode);
+                callback({status : false ,error : error});
+            }else if(outdata.retCode=="100"){
+                callback({status : true ,error : "success"});
+            }else{
+                callback({status : false ,error : "Yaarpay channel error"});
+            }
+        }  
+    })
+}
+
+
+function getErrorString  (errorCode) {
+    let keyError =  {
+        "0016":"Invalid Order Amount Format","0017":"Invalid Request Amount",
+        "0018":"Invalid Application Id",
+        "0019":"Invalid Channel Id","0020":"Channel Not Available",
+        "0021":"No Connector Available",
+        "0022":"Invalid Currency","0023":"Merchant not found",
+        "0024":"Notify URL not found","0025":"Invalid Notify URL",
+        "0026":"Return URL not found","0027":"Invalid Return URL",
+        "0028":"Invalid Signature","0029":"Invalid Version",
+        "0030":"Invalid Merchant Order Number","0031":"Invalid Client IP",
+        "0033":"Invalid Device","0034":"Invalid Deposit Name",
+        "0035":"Invalid Deposit Account","0036":"Invalid Extra Details",
+        "0037":"Execute Notify Not Found","0039":"Transaction Not Found",
+        "0040":"Request Denied","0041":"Account Name Not Found",
+        "0043":"Account Number Not Found","0044":"Invalid Payout Bank Code",
+        "0045":"Invalid Request Time","0046":"Invalid Account Attribute",
+        "0047":"Invalid Bank Branch","0048":"Invalid IFSC Code",
+        "0049":"Invalid Bank Province","0050":"Invalid Remarks",
+        "0051":"Insufficient Balance","0052":"Merchant Account Disabled",
+        "0053":"Merchant Application Id is disabled","0054":"Duplicate Transaction",
+        "0200":"Transaction Expired","0201":"Payment Not Completed",
+        "0202":"Account Details Don’t Match","0010":"System Error",
+        "0014":"Parameter Error","0999":"Unknown Error",
+        "0058":"Bank Used Not Available","0059":"Invalid Time Stamp"
+    }
+    return keyError[errorCode];
 }

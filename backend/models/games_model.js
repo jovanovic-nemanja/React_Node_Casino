@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const pokerConfig = require('../config/winpokerConfig/winpokerConfig');
+
 
 const PROVIDERMODELS = ()=>{
     var  UserSchema = new Schema({
@@ -79,17 +79,17 @@ const GAMELISTMODEL = () =>{
             type : Boolean,
             default : false
         },
-        backImage : {
-            type : String,
-            default : "",
-        },
-        gameImage : {
-            type : String,
-            default : "",
-        },
-        fpstatus : {
+        isdelete : {
             type : Boolean,
             default : false
+        },
+        
+        // fpstatus : {
+        //     type : Boolean,
+        //     default : false
+        // },
+        providerid : {
+            type: Schema.Types.ObjectId, ref: 'game_gameprovider',
         },
         PROVIDERID :{
             type : String,
@@ -115,15 +115,28 @@ const GAMELISTMODEL = () =>{
             required : true
         }
     });
-    return mongoose.model("game_game_list", UserSchema)
+
+    // UserSchema.pre('find', function () {
+    //     // `this` is an instance of mongoose.Query
+    //     this.select([ "TYPE","ID","TYPE","order","image","LAUNCHURL","WITHOUT","PROVIDERID","status","NAME"]);
+    // });
+   
+
+    // UserSchema.pre('findOne', function () {
+    //     // `this` is an instance of mongoose.Query
+    //     this.select([ "TYPE","ID","TYPE","order","image","LAUNCHURL","WITHOUT","PROVIDERID","status","NAME"]);
+    // });
+    return mongoose.model("game_game_list", UserSchema);
+
+
+
 }
 
 
 const FIRSTPAGE_GAMELIST_MODEL = ()=>{
     var  UserSchema = new Schema({
         gameid : {
-            type : String,
-            required : true
+            type: Schema.Types.ObjectId, ref: 'game_game_list',
         },
         order : {
             type : Number,
@@ -141,30 +154,46 @@ const FIRSTPAGE_GAMELIST_MODEL = ()=>{
   return  mongoose.model("game_firstpage_list", UserSchema)
 }
 
-const POKERROOMMODEL = ()=>{
-    const RoomSchema = new Schema({
-        roomName        : { type : String , required : true },
-        roomType        : { type : String , required : true },
-        operator        : { type : String , required : true },
-        status          : { type : String , default : pokerConfig.WAITING },
-        roundname       : { type : String , default : pokerConfig.DEAL },
-    
-        minplayers      : { type : Number , required : true },
-        maxplayers      : { type : Number , required : true },
-        minbuyin        : { type : Number , required : true },
-        maxbuyin        : { type : Number , required : true },
-        smallblind      : { type : Number , required : true },
-        bigblind        : { type : Number , required : true },
-        allPot          : { type : Number , default : 0 },
-        timeout         : { type : Number , default : 0 },
-        lastActionamount: { type : Number , default : 0 },
-    
-        board           : { type : Array , default : [] },
-        deck            : { type : Array , default : [] },
-    
-        lastActionTime  : { type : Date , default : 0 },
+
+const TopGamelistmodel = ()=>{
+    var  UserSchema = new Schema({
+        gameid : {
+            type: Schema.Types.ObjectId, ref: 'game_game_list',
+        },
+        order : {
+            type : Number,
+            default : 0
+        },
+        status : {
+            type : Boolean,
+            default : false
+        },
+        type : {
+            type : String,
+        }
     });
-  return  mongoose.model("poker_rooms", RoomSchema)
+  return  mongoose.model("game_topgamelist", UserSchema)
+}
+
+
+const Mrslottygames = ()=>{
+    var  UserSchema = new Schema({
+      
+        "brand name" : {
+            type : String,
+            required : true
+        },
+        "game id" : {
+            type : String,
+            required : true
+        },
+        "active" : {
+            type : String,
+            required : true
+        }
+
+    });
+  return  mongoose.model("mrslottygames", UserSchema)
 }
 
 
@@ -172,6 +201,7 @@ const POKERROOMMODEL = ()=>{
 module.exports = {
     PROVIDERMODELS : PROVIDERMODELS(),
     GAMELISTMODEL : GAMELISTMODEL(),
+    TopGamelistmodel : TopGamelistmodel(),
     FIRSTPAGE_GAMELIST_MODEL : FIRSTPAGE_GAMELIST_MODEL(),
-    POKERROOMMODEL: POKERROOMMODEL()
+    Mrslottygames  : Mrslottygames()
 }

@@ -26,6 +26,175 @@ body {
   &.dark-layout {
     background-color: $content-dark-bg;
 
+    // .select__menu {
+    //     z-index: 9999999999999999 !important;
+    //     position: fixed;
+    //     color: white;
+    //     background-color: #262c49 !important;
+    //     div{
+    //         background-color: #262c49 !important;
+    //     }
+    // }
+      
+    .select__option {
+      z-index: 999 !important;
+      color: white;
+    }
+    .select__option:hover{
+      background-color: #10163a  !important;
+    }
+
+    .select__option--is-focused{
+      background:  #10163a !important;
+      .select__option{
+          background: #10163a !important;
+      }
+    }
+
+    .form-control.flatpickr-input{
+        border:1px solid #7367f0 !important;
+    }
+
+    input.form-control, .custom-file-label, textarea.form-control{
+        border:1px solid #7367f0 !important;
+    }
+
+    .rdrMonthAndYearPickers select {
+      color: #bec2d8;
+    }
+
+    $matkabackground : #7367f0;
+
+    // satta
+    .satta{
+      font-family: 'Patrick Hand', cursive !important;
+      .bazarheader{
+        background-color:$matkabackground;
+        color: #fff;
+        font-size: 1.5rem;
+        padding: 0.5rem;
+        text-align: center;
+      }
+      .gameheader{
+        background-color: $dark-card-color;
+        color: gray !important;
+        font-size: 1rem;
+        padding: 0.5rem;
+        text-align: center;
+      }
+      .gamebody{
+        color: #fff;
+        div{
+          border: 1px solid $dark-card-color;
+          text-align: center;
+          padding:1rem 0rem;
+          cursor: pointer;
+        }
+      }
+      .bazarbody{
+        .bazaritem{
+          border: 2px solid $dark-card-color;
+          justify-content: center;
+          align-items: center;
+          display: flex;
+          color: white;
+          height: 100%;
+          cursor: pointer;
+          text-align: center;
+          padding: 0.5rem 0;
+          div{
+            font-size: 1.2rem;
+          }
+          .result{
+            color: green !important;
+            font-weight: bold;
+          }
+        }
+        .bazaritem:hover{
+          background-color: $matkabackground;
+        }
+      }
+
+      .satta-events-items{
+        border: 0.5px solid $dark-card-color !important;
+        cursor: pointer;
+        text-align: center;
+        padding: 5px;
+        color: #fff;
+        margin: 3px 0px;
+        border-radius: 2px;
+        background-color:  $dark-card-color;
+       
+      }
+      .satta-events-items:hover{
+          border-color: #9b928a !important;
+          box-shadow: 0 8px 25px -8px rgba( $dark-card-color,1);
+          background: $matkabackground !important;
+      }
+      .satta-events-items-active{
+          background-color: $matkabackground !important;
+        
+      }
+    }
+    .result{
+      font-family: 'Patrick Hand', cursive !important;
+
+      .topic{
+        font-size: 1.5rem;
+        color: #9b928a;
+        span{
+          color: #fff;
+          font-size: 1.5rem;
+        }
+
+      }
+      .gameheader{
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+        .gname{
+          background-color:  $matkabackground;
+          padding: 1rem;
+          width: 50%;
+          border: 0.5px solid $dark-card-color !important;
+          color: #fff;
+          font-size: 1rem;
+          cursor: pointer;
+        }
+      
+        .timer{
+          border: 0.5px solid $dark-card-color !important;
+          cursor: pointer;
+          color: #fff;
+          font-size: 1rem;
+          padding: 1rem;
+          display: flex;
+          justify-content: space-between;
+        }
+        .timer:hover{
+          background-color:  $dark-card-color;
+        }
+        .timeractive{
+          background-color:  $dark-card-color;
+        }
+      }
+      .gamebody{
+        display: flex;
+        flex-wrap: wrap;
+        .betnode{
+          color: #fff;
+          text-align: center;
+          border: 0.5px solid $dark-card-color !important;
+          padding :1rem 0rem;
+          width: 10%;
+          cursor: pointer;
+        }
+        .betnode:hover{
+          background-color:  $dark-card-color;
+        }
+      }
+    }
+    
 
       /**
       * Main wrapper
@@ -517,15 +686,15 @@ body {
             rgba(44, 48, 60, 0));
       }
 
-      &:not(.expanded) {
-        .navigation {
-          .sidebar-group-active {
-            a {
-              // background-color: $content-dark-bg;
-            }
-          }
-        }
-      }
+      // &:not(.expanded) {
+      //   .navigation {
+      //     .sidebar-group-active {
+      //       a {
+      //         // background-color: $content-dark-bg;
+      //       }
+      //     }
+      //   }
+      // }
 
       &.theme-dark {
         .navbar-header {
@@ -572,11 +741,11 @@ body {
             stroke: $theme-dark-text-color;
           }
 
-          &.open {
-            a {
-              // background-color: $content-dark-bg;
-            }
-          }
+          // &.open {
+          //   a {
+          //     // background-color: $content-dark-bg;
+          //   }
+          // }
 
           a:after {
             color: $theme-dark-text-color;

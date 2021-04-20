@@ -62,26 +62,6 @@ async function get_deleteids(id) {
     return data;
 }
 
-async function get_deletePids(pid){
-    var data = [];
-    async function fact(parent){
-        var pitems = await BASECONTROL.BfindOne(sidebarmodel,{id : parent});
-        if(pitems){
-            data.push(pitems);
-            await fact(pitems.pid);
-        }else{
-            return;
-        }
-    }
-    if(pid != "0"){
-        await fact(pid)
-        return data;
-    }else{
-        return [];
-    }
-}
-
-
 exports.roles_update = async(req,res,next) =>{
     var data = req.body.data;
     var row = {};
@@ -92,14 +72,6 @@ exports.roles_update = async(req,res,next) =>{
     row['roles'] = data.roles;
     row['type'] = data.type;
     var uhandle = await BASECONTROL.BfindOneAndUpdate(sidebarmodel,{id : data.id},row);
-    // var pids = await get_deletePids(uhandle.pid);
-    // for(var i = 0 ; i < pids.length ; i++){
-    //     uhandle = await BASECONTROL.BfindOneAndUpdate(sidebarmodel,{id :pids[i].id},{roles : data.roles,status : data.status});
-    // }
-    // var ids = await get_deleteids(data.id);
-    // for(var i = 0 ; i < ids.length ; i++){
-    //     uhandle = await BASECONTROL.BfindOneAndUpdate(sidebarmodel,{id :ids[i]},{roles : data.roles,status : data.status});
-    // }
     if(uhandle){
         this.roles_load(req,res,next);
     }else{ 

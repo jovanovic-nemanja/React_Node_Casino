@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
-import {mywallet_infor} from "../../../redux/actions/profileinfo"
+import {getRevenueLoad} from "../../../redux/actions/dashboard/index"
 import Flatpickr from "react-flatpickr"; 
 import { Col,Row} from "reactstrap"
 import StatisticsCard from "../../../components/@vuexy/statisticsCard/StatisticsCard"
@@ -22,20 +22,20 @@ export class index extends Component {
     
 
     componentDidMount(){
-        this.props.mywallet_infor(this.props.user,this.state.date);
+        // this.props.getRevenueLoad(this.state.date,this.props.user);
     }
 
     date_change = e =>{
         if(e.length ===2){
             this.setState({date :  e});
-            this.props.mywallet_infor(this.props.user,e)
+            this.props.getRevenueLoad(e,this.props.user)
         }
     }
 
     render() {
 
         let {BET,WIN,given,receive,MakingDeposits,MakingWithdrawals,playersLoggedIn,totallogincount,
-            playersRegistered,playersBalance,Profit,playersMakingDeposit,playersMakingWithdrawals,playersBonusBalance,playersagentBalance,positiontaking} = this.props.mywallet ? this.props.mywallet : null;
+            playersRegistered,playersBalance,Profit,playersMakingDeposit,playersMakingWithdrawals,playersBonusBalance,playersagentBalance,positiontaking} = this.props.data ? this.props.data : null;
         return (
             <Row className="h-100">
                 <Col md="12">
@@ -232,12 +232,11 @@ export class index extends Component {
 }
 
 const mapStateToProps = (state) => ({
-    mywallet : state.profileinfo.mywallet.load,   
-
+    data : state.dashboard.Revenue
 })
 
 const mapDispatchToProps = {
-    mywallet_infor
+    getRevenueLoad
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(index)

@@ -432,43 +432,6 @@
     }
 }
 
-.select__menu {
-    z-index: 9999999999999999 !important;
-    position: fixed;
-    color: white;
-    background-color: #262c49 !important;
-    div{
-        background-color: #262c49 !important;
-    }
-  }
-  
-  .select__option {
-    z-index: 999 !important;
-  }
-  .select__option:hover{
-    background-color: #10163a  !important;
-  }
-
-  .select__option--is--focused{
-    background-color: #10163a !important;
-    .select__option{
-        background-color: #10163a !important;
-    }
-}
-
-.select__option--is--focused:focus{
-    background:  #10163a !important;
-}
-
-[dir] body.dark-layout .form-control.flatpickr-input{
-    border:1px solid #7367f0 !important;
-}
-
-[dir] body.dark-layout input.form-control, [dir] body.dark-layout .custom-file-label, [dir] body.dark-layout textarea.form-control{
-    border:1px solid #7367f0 !important;
-}
-
-
 
 [dir] body.dark-layout .data-list .sort-dropdown {
     background-color: #212744;
@@ -559,9 +522,22 @@ div.jsoneditor-field, div.jsoneditor-value, div.jsoneditor td, div.jsoneditor th
     background-color: #10163a !important;
 
 }
-
-
-
+[dir] .jsoneditor-menu{
+    background-color: #10163a !important;
+    border-bottom: 1px solid #10163a !important;
+    // display: none !important;
+}
+[dir] .jsoneditor {
+    border: thin solid #10163a !important;
+    padding: 0;
+}
+[dir] .jsoneditor-navigation-bar{
+    background-color: transparent !important;
+    // display: none !important;
+}
+.jsoneditor-search{
+    display: none !important;
+}
 
 .revenubuttonactive{
     background-color: #00cfe8;
@@ -570,44 +546,9 @@ div.jsoneditor-field, div.jsoneditor-value, div.jsoneditor td, div.jsoneditor th
 }
 
 
-.satta{
-    .open-close-back{
-        background-color: #212744 ;
-        color: white !important;
-        text-align: center;
-        font-weight: bold;
-        padding: 1.3rem;
-        font-size: 1.3rem;
-    }
-    .todayresult{
-        color: white;
-        padding : 1rem;
-    }
-    .totalbet-amount-back{
-        background-color: #212744 ;
-        padding: 1.3rem;
-        font-size: 1.3rem;
-        color: white !important;
-
-    }
-    .content-back{
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        .item{
-            padding: 1rem;
-            border: 1px solid #10163a;
-        }
-    }
-    .content-back > div {
-        color: white;
-    }
-
-}
 
 
 .playerinfor-style{
-    background: #10163a;
-    height: 70vh;
     padding: 1rem;
     border-radius: 1rem;
 }
@@ -696,89 +637,6 @@ div.jsoneditor-field, div.jsoneditor-value, div.jsoneditor td, div.jsoneditor th
 
 
 
-$orange : #10163a;
-.numberitem{
-        background: $orange;
-        padding: 1rem;
-        border: 0.5px solid lightslategray !important;
-        color:lightslategray;
-}
-.satta{
-    
-    .bazaaritem-header{
-        font-size: 1rem;
-        svg{
-            font-size: 1.5rem;
-        }
-    }
-    .bazaaritem-body{
-
-        .bazaaritem-title{
-            font-size: 1.3rem;
-            color :$orange;
-        }
-    }
-    .tblbazaarheader{
-        display: inline-flex;
-        width: 10%;
-        text-align: center;
-        background-color:$orange;
-        font-size: 0.8rem;
-        height: 100%;
-        color: white;
-        padding: 0.8rem;
-    }
-    .tblbazaaritem{
-        display: inline-block;
-        width: 10%;
-        text-align: center;
-        font-size: 0.9rem;
-        color: white;
-        margin-top: 0.5rem;
-        padding-right: 2px;
-        .child{
-            border : 1px solid $orange;
-            width: 100%;
-            cursor: pointer;
-            display: block;
-            height: 100%;
-            align-items : center;
-            padding: 0.3rem 0.1rem 0.3rem 0.1rem;
-            p{
-                margin: 0px;
-            }
-
-            span{
-                font-size: 1rem;
-            }
-        }
-        .child:hover{
-            border-color: $orange !important;
-            box-shadow: 0 8px 25px -8px $orange;
-        }
-        .child1:hover{
-            border-color: $orange !important;
-            box-shadow: 0 8px 25px -8px $orange;
-        }
-        
-        .child1{
-            border : 1px solid $orange;
-            width: calc(50% - 2px);
-            display: inline-block;
-            height: 100%;
-            cursor: pointer;
-            padding: 0rem;
-            p{
-                margin: 0px;
-            }
-        }
-        .child1:last-child{
-            margin-left: 2px;
-            
-        }
-    }
-}
-
 
 .height-100 {
     height: 100% !important;
@@ -792,3 +650,71 @@ $orange : #10163a;
 [dir] .main-menu.menu-light .navigation > li.open > a, [dir] .main-menu.menu-light .navigation > li.sidebar-group-active > a, [dir] .main-menu.menu-light .navigation > li ul.menu-content .sidebar-group-active > a, [dir] .main-menu.menu-light .navigation > li ul.menu-content .open > a{
     background : transparent !important
 }
+
+
+.drag-wrapper{
+    outline : none;
+}
+
+
+.textstyle{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 992px) {
+    .modal-dialog {
+        max-width: 80% !important;
+    }
+}
+@media (max-width: 768px) {
+    .rdrDateRangePickerWrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        .rdrDefinedRangesWrapper{
+            margin-bottom: 5px;
+            width: 100%;
+        }
+    }
+}
+
+
+
+
+.select__menu {
+    z-index: 9999999999999999 !important;
+    position: fixed;
+    color: white;
+    background-color: #262c49 !important;
+    div{
+        background-color: #262c49 !important;
+    }
+  }
+  
+//   .select__option {
+//     z-index: 999 !important;
+//   }
+//   .select__option:hover{
+//     background-color: #10163a  !important;
+//   }
+
+//   .select__option--is--focused{
+//     background-color: #10163a !important;
+//     .select__option{
+//         background-color: #10163a !important;
+//     }
+// }
+
+// .select__option--is--focused:focus{
+//     background:  #10163a !important;
+// }
+
+// [dir] body.dark-layout .form-control.flatpickr-input{
+//     border:1px solid #7367f0 !important;
+// }
+
+// [dir] body.dark-layout input.form-control, [dir] body.dark-layout .custom-file-label, [dir] body.dark-layout textarea.form-control{
+//     border:1px solid #7367f0 !important;
+// }

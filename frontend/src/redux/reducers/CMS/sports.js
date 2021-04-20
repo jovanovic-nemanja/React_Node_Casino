@@ -1,4 +1,4 @@
-import {SPORTS_MENULIST_ALLDATA,SPORTS_MENULIST_GETDATA,SPORTS_MENULIST_FILTERDATA} from "../../types/cms"
+import {SPORTS_MENULIST_GETDATA,SPORTS_MENULIST_FILTERDATA} from "../../types"
 
 const initialState = {
     data: [],
@@ -10,40 +10,19 @@ const initialState = {
     sortIndex: []
   }
   
-  const getIndex = (arr, arr2, arr3, params = {}) => {
-    if (arr2.length > 0) {
-      let startIndex = arr.findIndex(i => i.id === arr2[0].id) + 1
-      let endIndex = arr.findIndex(i => i.id === arr2[arr2.length - 1].id) + 1
-      let finalArr = [startIndex, endIndex]
-      return (arr3 = finalArr)
-    } else {
-      let finalArr = [arr.length - parseInt(params.perPage), arr.length]
-      return (arr3 = finalArr)
-    }
-  }
   
  export const sports = (state = initialState, action) => {
     switch (action.type) {
       case SPORTS_MENULIST_GETDATA:
+      
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          )
-        }
-
-      case SPORTS_MENULIST_ALLDATA:
-        return {
-          ...state,
-          allData: action.data,
-          totalRecords: action.data.length,
-          sortIndex: getIndex(action.data, state.data, state.sortIndex)
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
       
         case SPORTS_MENULIST_FILTERDATA:

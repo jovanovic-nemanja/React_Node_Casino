@@ -1,4 +1,4 @@
-import {AXIOS_REQUEST,set_page} from "../../auth/index"
+import {AXIOS_REQUEST,Set_reducer} from "../../auth/index"
 import { toast } from "react-toastify";
 
 export const getData = (params,date) => {
@@ -6,10 +6,8 @@ export const getData = (params,date) => {
     if(date.length === 2){
       var rdata = await AXIOS_REQUEST("players/realtimeusers",{start : date[0],end : date[1]})
           if(rdata.status){
-          var rows =  set_page(params,rdata);
-          var fdata = rows['fdata'];
-          var totalPages = rows['totalPages'];
-            dispatch({ type: "REALTIME_GET_DATA",data: fdata,totalPages:totalPages,params,alldata : rdata.data,count : rdata.count})
+            Set_reducer(dispatch,params,rdata,"REALTIME_GET_DATA")
+
         }else{
           toast.error("fail")
         }
@@ -25,10 +23,8 @@ export const deleteRow = (value,params)=>{
   return async(dispatch)=>{
     var rdata = await AXIOS_REQUEST("players/realtimeusersdelete",{email : value.email})
       if(rdata.status){
-        var rows =  set_page(params,rdata);
-        var fdata = rows['fdata'];
-        var totalPages = rows['totalPages'];
-          dispatch({ type: "REALTIME_GET_DATA",data: fdata,totalPages:totalPages,params,alldata : rdata.data,count : rdata.count})
+        Set_reducer(dispatch,params,rdata,"REALTIME_GET_DATA")
+
       }else{
         toast.error("fail")
       }
@@ -40,9 +36,7 @@ export const pagenationchange = (params,data)=>{
     var row = {
       data : getState().userslist.realtimeusers.allData
     }
-    var rows =  set_page(params,row)
-    var fdata = rows['fdata'];
-    var totalPages = rows['totalPages'];
-    dispatch({ type:"REALTIME_SET_PAGENATION",data: fdata,totalPages:totalPages,params})
+    Set_reducer(dispatch,params,row,"REALTIME_GET_DATA")
+
   }
 }

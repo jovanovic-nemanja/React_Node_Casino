@@ -25,7 +25,8 @@ class SideMenuContent extends React.Component {
     activeGroups: [],
     currentActiveGroup: [],
     tempArr: [],
-    activeitem : this.props.activeItemState
+    activeitem : this.props.activeItemState,
+    refresh : false
   }
 
   get_groups_active = (id) =>{
@@ -122,6 +123,33 @@ class SideMenuContent extends React.Component {
     return item;
   }
 
+  get_item_navLink = (id) =>{
+    let sidebar = this.props.sidebar;
+    let item = null;
+    function fact(node){
+      if(node.navLink === id){
+        item = node;
+        return;
+      }
+      if(node.children && node.children.length > 0){
+        for(let j in node.children){
+          if(id === node.children[j].navLink){
+            item = node.children[j];
+            return;
+          }
+          fact(node.children[j]);
+        }
+      }else{
+        return;
+      }
+    }
+
+    for(var i in sidebar){
+      fact(sidebar[i]);
+    }
+    return item;
+  }
+  
   handleGroupClick = async (id, parent = null, type = "") => {
 
     let open_group = this.state.activeGroups;
@@ -129,30 +157,30 @@ class SideMenuContent extends React.Component {
 
     if (type === "item" && parent === null){
       open_group = [];
+      
       window.sessionStorage.setItem("activeitem",id);
-      window.sessionStorage.setItem("activeGroups",JSON.stringify(open_group));
-      this.setState({activeitem : id})
+      window.sessionStorage.setItem("activegroup",JSON.stringify("[]"));
+      this.setState({activeitem : id});
       return;
     }else if(type === "item" && parent){
       let p_groups = this.get_groups_parent(parent);
       open_group = p_groups;
       window.sessionStorage.setItem("activeitem",id);
-      window.sessionStorage.setItem("activeGroups",JSON.stringify(open_group));
+      window.sessionStorage.setItem("activegroup",JSON.stringify(p_groups));
       this.setState({activeGroups : p_groups,activeitem :id });
-      // history.push(activeitem.navLink)
-
     }else if(type === "collapse" && parent === null){
-
       if(open_group.indexOf(id) === -1){
         open_group = [];
         let d_ = this.get_groups_active(id);
         open_group = d_["groups"];
         activeitem = d_["node"].id;
         window.sessionStorage.setItem("activeitem",activeitem);
-        window.sessionStorage.setItem("activeGroups",JSON.stringify(open_group));
+        window.sessionStorage.setItem("activegroup",JSON.stringify(open_group));
         this.setState({activeGroups : open_group,activeitem :activeitem });
         history.push(d_["node"].navLink)
       }else{
+        window.sessionStorage.setItem("activeitem",null);
+        window.sessionStorage.setItem("activegroup",JSON.stringify([]));
         this.setState({activeGroups : [],activeitem : null });
         return;
       }
@@ -166,35 +194,42 @@ class SideMenuContent extends React.Component {
         open_group = p_groups;
         open_group = [...open_group,...groups];
         window.sessionStorage.setItem("activeitem",activeitem);
-        window.sessionStorage.setItem("activeGroups",JSON.stringify(open_group));
+        window.sessionStorage.setItem("activegroup",JSON.stringify(open_group));
         this.setState({activeGroups : open_group,activeitem :activeitem });
         history.push(d_["node"].navLink)
       }else{
         open_group = [];
         let p_groups = this.get_groups_parent(parent);
         open_group = p_groups;
+        window.sessionStorage.setItem("activegroup",JSON.stringify(open_group));
         this.setState({activeGroups : open_group});
       }
     }
   }
 
   initRender = () => {
-    var activeitem = window.sessionStorage.getItem("activeitem");
-    var activeGroups = window.sessionStorage.getItem("activeGroups");
-    if(!activeitem){
-      activeitem = "1601932220850";
-      activeGroups = [];
-      activeGroups.push("1601932220849");
-      window.sessionStorage.setItem("activeitem",activeitem);
-      window.sessionStorage.setItem("activeGroups",JSON.stringify(activeGroups));
+
+    var activeitem1 = history.location.pathname;
+
+    // let sidebararray = this.props.sidebararray;
+    // let isExit = sidebararray.find(obj => obj.navLink === activeitem1);
+    // if (!isExit) {
+    //   history.push("/misc/not-authorized")
+    // }
+    
+    let link = activeitem1 === "/"  ?  "/dashboard/Revenue" : activeitem1;
+    let item =  this.get_item_navLink(link);
+
+    if(item){
+      let parent = item.pid === "0" ? null : item.pid;
+      this.handleGroupClick(item.id,parent,item.type)
     }else{
-      activeGroups = JSON.parse(activeGroups);
+      let activeitem = window.sessionStorage.getItem("activeitem");
+      let activegroup = window.sessionStorage.getItem("activegroup");
+      activegroup = activegroup !== "null" ? JSON.parse(activegroup) : [];
+      this.setState({activeGroups : activegroup,activeitem : activeitem})
     }
-    this.setState({
-      activeGroups: activeGroups ? (activeGroups) : [],
-      flag: false,
-      activeitem : activeitem ? activeitem  : ""
-    });
+
   }
 
   componentDidMount() {
@@ -206,6 +241,7 @@ class SideMenuContent extends React.Component {
     // eslint-disable-next-line
     let navigationConfig =  this.props.sidebar;
     const menuItems = navigationConfig && navigationConfig.map(item => {
+
       const CustomAnchorTag = Link;
       let Tag = FaIcon[item.icon];
       // checks if item has groupheader\

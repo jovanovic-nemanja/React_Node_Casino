@@ -1,6 +1,7 @@
 import React from "react"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClock } from '@fortawesome/free-solid-svg-icons'
+import {connect } from "react-redux"
 
 class Clock extends React.Component{
     _isMounted = false;
@@ -14,34 +15,51 @@ class Clock extends React.Component{
 	
 	componentDidMount() {
         this._isMounted = true;
-		setInterval(this.update, 1000)
 	}
 	
-	update = () => {
-        if (this._isMounted) {
-            this.setState({
-                time: new Date()
-            })
-            
-        }
-    };
+	
     componentWillUnmount() {
         this._isMounted = false;
     }
 
     render(){
-        const h = this.state.time.getHours()
-        const m = this.state.time.getMinutes()
-        const s = this.state.time.getSeconds()
         return(
-        <div className="header-time-bar">
-            <div className="header-clock-time">
-                <FontAwesomeIcon color="#1a9a65" icon={faClock} />
-                <h1 className='header-clock-hour'>&nbsp;{h % 12}:{(m < 10 ? '0' + m : m)}:{(s < 10 ? '0' + s : s)}&nbsp;</h1><span className="header-clock-def">{h < 12 ? 'AM' : 'PM'}&nbsp;</span>
+            <div className="header-time-bar">
+                <div className="header-clock-time">
+                {
+                    this.props.time && this.props.time.toLocaleTimeString ? 
+                    <React.Fragment>
+                        <FontAwesomeIcon color="#1a9a65" icon={faClock} />
+                        <h2>
+                            {
+                                this.props.time ? 
+                                this.props.time.toLocaleTimeString :
+                                null
+                            }
+                        </h2>
+                        <span>
+                            {
+                                this.props.time ? 
+                                this.props.time.toDateString :
+                                null
+                            }
+                        </span>
+                    </React.Fragment>
+                    : null
+                }
+                </div>
             </div>
-        </div>
         )
     }
 }
 
-export default Clock;
+const mapStateToProps = (state) => ({
+    time : state.time.value
+
+})
+
+const mapDispatchToProps = {
+    
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Clock)

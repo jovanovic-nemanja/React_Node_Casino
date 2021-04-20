@@ -1,4 +1,3 @@
-import {getIndex} from "../../actions/auth/index"
 
 const initialState = {
     data: [],
@@ -17,31 +16,14 @@ const initialState = {
         return {
           ...state,
           data: action.data,
+          allData : action.alldata,
           totalPages: action.totalPages,
+          totalRecords: action.alldata.length,
           params: action.params,
-          sortIndex: getIndex(
-            action.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
-          allData: action.allData,
-          totalRecords: action.allData.length,
-          count : action.count
+          sortIndex:  [action.params["skip"] + 1,action.params["skip2"]]
         }
-      case "GAMESESSIonREALTIME_PAGENATION":
-        return {
-          ...state,
-          data: action.data,
-          totalPages: action.totalPages,
-          params: action.params,
-          sortIndex: getIndex(
-            state.allData,
-            action.data,
-            state.sortIndex,
-            action.params
-          ),
-        }
+        // count : action.count
+    
         
       case "GAMESESSIonREALTIME_FILTER_DATA":
         let value = action.value

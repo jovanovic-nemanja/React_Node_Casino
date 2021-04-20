@@ -4,8 +4,10 @@ import { Label, Input, FormGroup ,Form,Button,CustomInput,Col,Row} from "reactst
 import Select from "react-select"
 import Flatpickr from "react-flatpickr";
 import {currency, language} from "../../../redux/actions/auth/currency"
-import {status_options,gender} from "../../../configs/providerconfig"
-import {profile_update,profile_load} from "../../../redux/actions/profileinfo"
+import {status_options,gender,signup_device} from "../../../configs/providerconfig"
+import {profile_update,profile_load,avatarUpload} from "../../../redux/actions/profileinfo"
+import {toast} from "react-toastify"
+import {Root} from "../../../authServices/rootconfig"
 
 export class index extends Component {
 
@@ -37,18 +39,22 @@ export class index extends Component {
             subscribedtoemail : false,
             subscribedtosms : false,
             _id : "",
-            emailverify : false
-
-
+            emailverify : false,
+            signup_device : signup_device[0].value,
+            imageDataUrl : "",
+            file : null,
+            avatar : "",
+            imageSrc : "",
+            date : ""
         }
     }
     
     componentDidMount(){
-        this.props.profile_load(this.props.user.email);
+        // this.props.profile_load(this.props.user.email);
     }
 
     componentDidUpdate(prevProps, prevState){
-        if(prevProps.userdetail !== this.props.userdetail){
+        if (prevProps.userdetail !== this.props.userdetail) {
             this.setState({...this.props.userdetail})
         }
     }
@@ -59,22 +65,73 @@ export class index extends Component {
         this.props.profile_update(this.state);
     }
 
+    async filechange(e){
+        if (e.target.files && e.target.files.length) {
+            let file = e.target.files[0];
+            if(file.size < 512000){
+                let imageDataUrl = await this.readFile(file)
+                this.setState({imageSrc :imageDataUrl,file : file })
+                const fpdata = new FormData();
+                fpdata.append('_id',this.state._id)
+                fpdata.append('fpImgFile', file);
+                this.props.avatarUpload(fpdata)
+            }else{
+                toast.warn("The file size is too large.")
+            }
+        }
+       
+    }
+
+    
+    readFile = (file)=> {
+        return new Promise(resolve => {
+          const reader = new FileReader()
+          reader.addEventListener('load', () => resolve(reader.result), false)
+          reader.readAsDataURL(file)
+        })
+    }
+
     render() {
+        const {imageSrc, avatar, date} = this.state
+
         return (
             <Form className="" action="#" onSubmit={this.handleregister}>
                 <Row>
-                    <Col md="4" sm="12">
-                    <FormGroup>
-                        <Label for="username">User Name *</Label>
-                        <Input type="text" name="username" id="username" placeholder="User Name"
-                            onChange={e=>this.setState({username : e.target.value})}
-                            value = {this.state.username}
-                            required
-                            disabled={this.props.data !== null ? true : false}
-                        />
-                    </FormGroup>
+                    <Col md="4" sm="12"  className="p-1 d-flex align-items-center justify-content-center text-center" >
+                        {
+                            avatar && avatar.length && imageSrc && imageSrc.length ?
+                            <img src={this.state.imageSrc} alt="" style={{ width:"150px",height:"80px", borderRadius:'50%'}} /> :
+                            imageSrc && imageSrc.length ?
+                            <img src={this.state.imageSrc} alt="" style={{ width:"150px",height:"80px", borderRadius:'50%'}} /> :
+                            avatar && avatar.length ?
+                            <img alt="" src={Root.imageurl + this.state.avatar} style={{ margin:'auto',width:"150px", borderRadius:'50%',height:"80px"}} /> 
+                            : null
+                        }
                     </Col>
-                   
+                    <Col md="4" sm="12">
+                        <FormGroup>
+                            <Label for="username">registered date</Label>
+                            <Input type="text" name="username" id="registered" placeholder="registered date"
+                                value = {date}
+                                disabled={true} required />
+                        </FormGroup>
+                    </Col>
+                    <Col md="4" sm="12">
+                        <FormGroup>
+                            <Label for="username">User Name *</Label>
+                            <Input type="text" name="username" id="username" placeholder="User Name"
+                                onChange={e=>this.setState({username : e.target.value})}
+                                value = {this.state.username}
+                                required
+                                disabled={this.props.data !== null ? true : false}
+                            />
+                        </FormGroup>
+                    </Col>
+
+                    <Col md="4" xs="12" sm="12" className="p-1" >
+                        <Input bsSize="sm" label="File select"  onChange={(e)=>{this.filechange(e)}} accept="image/png, image/jpeg" id={"livecasinoimg"}  type="file" />
+                    </Col>
+
                     <Col md="4" sm="12">
                     <FormGroup>
                         <Label for="firstname">First Name</Label>
@@ -86,6 +143,7 @@ export class index extends Component {
                         />
                     </FormGroup>
                     </Col>
+                   
                     <Col md="4" sm="12">
                     <FormGroup>
                         <Label for="accountholder">Account Holder</Label>
@@ -242,6 +300,21 @@ export class index extends Component {
                     </FormGroup>
                     </Col>
                     <Col md="4" sm="12">
+                <FormGroup>
+                  <Label for="signupDevice">signupDevice</Label>
+                  <Select
+                    className="React"
+                    classNamePrefix="select"
+                    id="signupDevice"
+                    name="signupDevice"
+                    options={signup_device}
+                    value={signup_device.find(obj => obj.value === this.state.signup_device)}
+                    defaultValue={signup_device[0]}
+                    onChange={e => this.setState({ signup_device: e.value })}
+                  />
+                </FormGroup>
+              </Col>
+                    <Col md="4" sm="12">
                     <FormGroup>
                         <Label for="cashdesk">Cashdesk</Label>
                         <Input type="text" name="cashdesk" id="cashdesk" placeholder="Cashdesk"
@@ -341,7 +414,7 @@ const mapStateToProps = (state) => ({
 })
 
 const mapDispatchToProps = {
-    profile_update,profile_load
+    profile_update,profile_load, avatarUpload
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(index)

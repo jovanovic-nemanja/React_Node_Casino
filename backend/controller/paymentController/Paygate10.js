@@ -1,23 +1,30 @@
 const md5 = require('md5')
 const Request = require("request")
 const BASECON = require("../basecontroller")
-const { BalanceUpdate, PayoutOrder } = require('./init')
-const { GamePlay, adminUser } = require("../../models/users_model")
-const { Paymentconfig, TransactionsHistory, PaymentMenuModel, WithdrawHistory, PaymentMethod } = require("../../models/paymentGateWayModel")
-const PAYMENTCONFIG = require("../../config/paymenterror.json");
-
+const { GamePlay ,adminUser} = require("../../models/users_model")
+const {  TransactionsHistory,paymentuserdetail,PaymentMenuModel } = require("../../models/paymentGateWayModel")
 var mongoose = require('mongoose');
+const Paymorocontrol = require("./paymoro")
+const PCONFIG = require("../../config/pconfig")
+const transactionControl = require("./Transaction")
+
 
 exports.Paygate10Callback = async(req,res,next)=>{
-    var updata = { resultData : req.body };
+
+    var updata = {  };
+
     var txnhis = await BASECON.BfindOne(TransactionsHistory,{order_no : req.body.txid});
     var userdata = await BASECON.BfindOne(GamePlay,{email :txnhis.email });
-    if(txnhis && userdata){
-        if(req.body.status == "APPROVED" ){
+    if( txnhis && userdata){
+        if( req.body.status == "APPROVED" ){
+
+            console.log("--------------approved")
         // const { fee } = await PaymentMenuModel.findOne({type})
         // let balance = parseFloat(amount) - parseFloat(amount) * parseFloat(fee)/100
 
-            if(txnhis.status != PAYMENTCONFIG.PaymentStatus_bool.Approve){
+            if( txnhis.status != PCONFIG.Approve){
+    
+                console.log("--------------approved")
                 var wallets = {
                     commission:0,
                     status :"DEPOSIT",
@@ -26,29 +33,55 @@ exports.Paygate10Callback = async(req,res,next)=>{
                     LAUNCHURL : "cash",
                     GAMEID : "RuPeePay",
                     USERID : userdata.id,
-                    credited : amount,
+                    credited : txnhis.amount,
                     debited : 0,
                     lastbalance : userdata.balance
                 }
-                updata["status"] = PAYMENTCONFIG.PaymentStatus_bool.Approve;
+                updata["status"] = PCONFIG.Approve;
                 updata["lastbalance"] = userdata.balance;
-                var current = await BASECON.email_balanceupdate(email, txnhis.amount,wallets);
+                var current = await BASECON.email_balanceupdate(txnhis.email, txnhis.amount,wallets);
                 updata["updatedbalance"] = current;
             }
 
-        }else{
-            updata["status"] = PAYMENTCONFIG.PaymentStatus_bool.Reject;
+        } else {
+            updata["status"] = PCONFIG.Reject;
             updata["lastbalance"] = userdata.balance;
             updata["updatedbalance"] = userdata.balance;
         }
-        await BASECON.BfindOneAndUpdate(TransactionsHistory,{ order_no : txnhis.order_no}, updata);
+
+        updata["order_no"] = txnhis.order_no;
+        updata["userid"] = txnhis.userid;
+        updata["amount"] = txnhis.amount;
+        // await BASECONTROL.BfindOneAndUpdate(TransactionsHistory,{ order_no : mchOrderNo}, updata);
+        Paymorocontrol.transactionUpdate( updata);
 
     }
-    return res.status(200)
+    return res.status(200).send()
 }
 
 exports.Paygate10CallbackW = async(req,res,next)=>{
-    return next()
+    console.log("----------------------payout callback return url");
+
+    console.log(req.body)
+    console.log("----------------------payout callback return url");
+    let {status,payoutid} = req.body;
+
+    var txnhis = await BASECON.BfindOne(TransactionsHistory,{order_no : payoutid});
+    var userdata = await BASECON.BfindOne(GamePlay,{email :txnhis.email });
+    if( txnhis && userdata){
+        if (txnhis.status == PCONFIG.Paid) {
+            if (status == "APPROVED") {
+                
+                await TransactionsHistory.findOneAndUpdate({_id : txnhis._id},{status :PCONFIG.Approve});
+            } else if (status == "DECLINED") {
+
+                await TransactionsHistory.findOneAndUpdate({_id : txnhis._id},{status :PCONFIG.Reject});
+                await transactionControl.balancRefund(userdata,txnhis);
+            }
+        }
+    }
+
+    return res.status(200).send()
 }
 exports.Paygate10CallbackC = async(req,res,next)=>{
     return next()
@@ -57,45 +90,35 @@ exports.Paygate10CallbackCW = async(req,res,next)=>{
     return next()
 }
 
-exports.Paygate10Withdraw = async(req,res,next)=>{
-    var data = req.body
-    let withdrawHistory = await WithdrawHistory.findOne({ "email": data.email, $or: [ { "status": "processing" }, { $or: [ { "status": "pending" } ] } ] })
-    if(!withdrawHistory){
-        let balanceData = await GamePlay.findOne({email:data.email})
-        if(parseFloat(balanceData.balance)>parseFloat(data.amount)){
-            let type = data.type
-            let paymentMethodData = { email:data.email, type, paymentData:data }
-            await PaymentMethod.findOneAndUpdate({type, email:data.email}, paymentMethodData, { upsert: true }, async(err)=>{
-                if(err){
-                    return res.json({status:false, data:"failed"})
-                }else{
-                    const withdrawHistoryData = new WithdrawHistory(data)
-                    withdrawHistoryData.save((err)=>{
-                        if(err){
-                            return res.json({status : false, data : "failed"})
-                        }else{
-                            return res.json({status : true, data : "Success"})
-                        }
-                    })
-                }
-            })
-        }else{
-            return res.json({status : false, data : "You cannot withdraw many than the balance amount."})
-        }
-    }else{
-        return res.json({status : false, data : "There has been a recent change to the withdrawal process, users are allowed to have only 1 pending withdrawal at a time. Please cancel and resubmit your withdrawal request."})
-    }
-}
-
 exports.Paygate10CheckOut = async(req,res,next)=>{
-    var { first_name, last_name, email, amount, type, bankType, mobile, address, city, postcode } = req.body;
-    var ruppeconfig = await BASECON.BfindOne(Paymentconfig,{type : PAYMENTCONFIG.PaymentconfigType.Ruppe});
-    if(!ruppeconfig){
-        return res.json({ status : false, data: 'fail' })
-    }else{
-        var { midcode, midsecret, apikey, apisecret, callbackurl, return_url, request_url, callbackurl_c } = ruppeconfig.configData;
+
+    console.log(req.body,"------------paygate 10------")
+    var  {firstname, lastname, email,_id} = req.user;
+    var {    mobile, address, city, postcode ,paymentmenuid} = req.body;
+    var amount = parseInt(req.body.amount);
+    let row = { mobile,address,city,postcode };
+    var ruppeconfig = await PaymentMenuModel.findOne({_id : paymentmenuid}).populate("paymentconfigurationid");
+    if (!ruppeconfig) {
+        return res.json({ status : false, data: 'fail' });
+    } else {
+        var bankType = ruppeconfig.paymentType;
+        console.log(_id);
+        console.log(paymentmenuid);
+        console.log(row);
+        let dddd= await BASECON.BfindOneAndUpdate(adminUser,{_id : _id},{address : address , mobilenumber : mobile});
+        console.log(dddd)
+        await BASECON.BfindOneAndUpdate(paymentuserdetail,{userid : mongoose.Types.ObjectId(_id),paymentconfigid : paymentmenuid},{paymentData : row});
+
+        var type = ruppeconfig.paymentconfigurationid.type;
+
+        var { midcode, midsecret, callbackurl, return_url, request_url ,telegramreturnurl} = ruppeconfig.paymentconfigurationid.configData;
+
+        if (req.headers["user-device"] == "telegram") {
+            return_url = telegramreturnurl
+        } 
+
         let ipaddress = BASECON.get_ipaddress(req);
-        let requesttype = PAYMENTCONFIG.WalletType_STRING.Deposit;
+        let requesttype = "deposit";
         let order_no = Math.floor(new Date().valueOf()/1000);
         amount =  amount.toFixed(2);
         let form = {
@@ -114,13 +137,13 @@ exports.Paygate10CheckOut = async(req,res,next)=>{
             reference3: "",
             reference4: "",
             reference5: "",
-            firstname:first_name,
-            lastname:last_name,
+            firstname:firstname,
+            lastname:lastname,
         }    
         let options = {'method': 'POST', 'url': request_url,
             'headers': { 'Content-Type': 'application/json' }, }
 
-        if(bankType=='netbanking'){
+            console.log(form)
             var encrypthash = md5(midcode + order_no + amount + midsecret);
             form = Object.assign({}, form, 
             {
@@ -133,246 +156,103 @@ exports.Paygate10CheckOut = async(req,res,next)=>{
                 returnurl: return_url
             })
 
+            console.log(form)
+
             Request.post({...options, body:JSON.stringify(form)}, async (error, response) => {
                 if (error){
                     return res.json({ status : false, data : "failed"})
-                }else{
-                    if(response.statusCode == 400){
+                } else {
+                    if( response.statusCode == 400){
                         return res.json({ status : false, data : "failed"})
-                    }else{
+                    } else {
+
                         let resultData = JSON.parse(response.body);
-                        let transactionData = { 
-                            type, email, amount, status : PAYMENTCONFIG.PaymentStatus_bool.pending, 
-                            requestData: resultData,
-                            order_no: resultData.transactionid, 
-                            wallettype : "DEPOSIT",
-                            userid : mongoose.Types.ObjectId(req.user._id)
-
-                        }
-                        var txnsave = await BASECON.data_save(transactionData,TransactionsHistory);
-                        if(txnsave){
-                            return res.json({ status : true, data:resultData})
-                        }else{
-                            return res.json({ status : false, data : "failed"})
-                        }
-                    }
-                }
-            })
-        }else if(bankType=='cod'){
-            
-            var encrypthash = md5(apisecret+order_no+email+amount.toFixed(2))
-            form = Object.assign({}, form, {
-                apikey,
-                encrypthash,
-                callbackurl:callbackurl_c,
-            })
-            Request.post({...options, body:JSON.stringify(form)}, async (error, response) => {
-                if (error){
-                    return res.json({ status : false, data : "failed"})
-                }else{
-                    let resultData = JSON.parse(response.body)
-                    if(response.statusCode==400){
-                        return res.json({ status : false, data : "failed"})
-                    }else if(resultData.status.toLocaleLowerCase()=='approved'){
-
-                        var userdata = await BASECON.BfindOne(GamePlay,{email : email})
                         
-                        let transactionData = { 
-                            type, email, amount, status,
-                            requestData:form, resultData,
-                            order_no: resultData.transactionid,
-                            wallettype : "DEPOSIT"
-                        }
-
-                        var wallets_ = {
-                            commission:0,
-                            status :"DEPOSIT",
-                            roundid :resultData.transactionid,
-                            transactionid : resultData.transactionid,
-                            LAUNCHURL : "cash",
-                            GAMEID : "RuPeePay",
-                            USERID : userdata.id,
-                            credited : amount,
-                            debited : 0,
-                            lastbalance : userdata.balance
-                        }
-                        // const transactionsHistory = new TransactionsHistory(transactionData)
-                        // await transactionsHistory.save(async (err)=>{
-                            var err = await BASECON.data_save(transactionData,TransactionsHistory)
-                            if(!err){
+                        if (resultData.status == "DECLINED") {
+                            return res.json({ status : false, data : message});
+                        } else {
+                            let transactionData = { 
+                                type, email, amount, status : PCONFIG.Pending, 
+                                order_no: resultData.transactionid, 
+                                wallettype : "DEPOSIT",
+                                userid : mongoose.Types.ObjectId(req.user._id)
+                            }
+                            var txnsave = await BASECON.data_save(transactionData,TransactionsHistory);
+                            if( txnsave){
+                                return res.json({ status : true, data:resultData})
+                            } else {
                                 return res.json({ status : false, data : "failed"})
-                            }else{
-                                // const { fee } = await PaymentMenuModel.findOne({type})
-                                // let balance = parseFloat(amount) - parseFloat(amount) * parseFloat(fee)/100
-                                let balance = parseFloat(amount)
-                                await BalanceUpdate(email, balance,resultData.transactionid,wallets_);
-                                const redirect = new URL(return_url)
-                                redirect.searchParams.append("amount", amount)
-                                redirect.searchParams.append("currency", 'INR')
-                                redirect.searchParams.append("status", resultData.status)
-                                return res.json({ status : true, data : {paymenturl:redirect}})
                             }
-                        // })
-                    }else if(resultData.status.toLocaleLowerCase()=='declined'){
-                        if(resultData.message){
-                            let message = ''
-                            let str = resultData.message
-                            while (str.length > 0) {
-                                message += str.substring(0, 20) + '\n'
-                                str = str.substring(20)
-                            }
-                            return res.json({ status : false, data : message})
+
                         }
-                        return res.json({ status : false, data : 'faild'})
                     }
                 }
             })
-        }
+        // }
+        // else if( bankType=='cod'){
+            
+        // }
     }
 }
 
-exports.Paygate10Payout = async(req,res,next)=>{
-    var data = req.body
-    const { status, email, amount, bankType, payoutData, first_name, last_name } = req.body
-    const { username, accountname, accountnumber, bankname, bankifsc, bankbranch, bankaddress,   mobile, address, city, postcode } = payoutData
-    if(status=="payout"){
-        let balanceData = await GamePlay.findOne({email})
-        if(parseFloat(balanceData.balance)>parseFloat(amount)){
-            const paymentconfig = await Paymentconfig.findOne({ type : data.type })
-            if(!paymentconfig){
-                return res.json({ status : false, data: 'fail' })
-            }else if(!paymentconfig.state){
-                return res.json({ status : false, data: paymentconfig.type+' has been disabled.' })
-            }else{
-                const status = 'withdrawal'
-                const timestamp = Math.floor(new Date().valueOf()/1000)
-                const { midcode, midsecret, apikey, apisecret, request_url, callbackurl2 } = paymentconfig.configData
-                let balance = parseFloat(amount).toFixed(2)
-                let options = {
-                    'method': 'POST',
-                    'url': request_url,
-                    'headers': {
-                        'Content-Type': 'application/json'
-                    },
-                }
-                if(bankType=='netbanking'){
-                    const encrypthash = md5(midsecret+timestamp+balance)
-                    const requestcode = md5(timestamp)
-                    let form = {
-                        requesttype: status,
-                        requestfor: bankType,
-                        countrycode: "IN",
-                        amount:balance,
-                        timestamp,
-                        currency: "INR",
-                        reference1: "",
-                        reference2: "",
-                        reference3: "",
-                        reference4: "",
-                        reference5: "",
-                        midcode,
-                        encrypthash,
-                        requestcode,
-                        username,
-                        accountname,
-                        accountnumber,
-                        bankname,
-                        bankifsc,
-                        bankbranch,
-                        bankaddress,
-                        callbackurl:callbackurl2
-                    }
-                    
-                    Request.post({...options, body:JSON.stringify(form)}, async (error, response) => {
-                        if (error){
-                            return res.json({ status : false, data : "failed"})
-                        }else{
-                            let transactiondata = {
-                                type : data.type,
-                                email : data.email,
-                                order_no : timestamp,
-                                status : 'payout',
-                                amount : amount,
-                                requestData : data,
-                            }
-                            let resultData = JSON.parse(response.body)
-                            if(response.statusCode==400){
-                                return res.json({ status : false, data : "failed"})
-                            }else if(resultData.status.toLocaleLowerCase()=='approved'){
-                                transactiondata = Object.assign({}, transactiondata, {resultData})
-                                await BASECON.email_balanceupdate(data.email, -parseFloat(amount))
-                            }
-                            const transactionsHistory = new TransactionsHistory(transactiondata)
-                            await transactionsHistory.save(async (err)=>{
-                                if(err){
-                                    return res.json({status : false, data : "failed"})
-                                }else{
-                                    await WithdrawHistory.updateOne({ _id : data._id}, {status: resultData.status} )
-                                    return res.json({ status : true, data:resultData.status})
-                                }
-                            })
-                        }
-                    })
-                }else if(bankType=='cod'){
-                    const encrypthash = md5(apisecret+timestamp+email+balance)
-                    let form = {
-                        requesttype: status,
-                        requestfor: bankType,
-                        mobile,
-                        address,
-                        city,
-                        postcode,
-                        email,
-                        amount:balance,
-                        apikey,
-                        timestamp,
-                        currency: "INR",
-                        reference1: "",
-                        reference2: "",
-                        reference3: "",
-                        reference4: "",
-                        reference5: "",
-                        firstname:first_name,
-                        lastname:last_name,
-                        encrypthash,
-                        callbackurl:callbackurl2,
-                    }
-                    Request.post({...options, body:JSON.stringify(form)}, async (error, response) => {
-                        if (error){
-                            return res.json({ status : false, data : "failed"})
-                        }else{
-                            let transactiondata = {
-                                type : data.type,
-                                email : data.email,
-                                order_no : timestamp,
-                                status : 'payout',
-                                amount : amount,
-                                requestData : data,
-                            }
-                            let resultData = JSON.parse(response.body)
-                            if(response.statusCode==400){
-                                return res.json({ status : false, data : "failed"})
-                            }else if(resultData.status.toLocaleLowerCase()=='approved'){
-                                transactiondata = Object.assign({}, transactiondata, {resultData})
-                                await BASECON.email_balanceupdate(data.email, -parseFloat(amount))
-                            }
-                            const transactionsHistory = new TransactionsHistory(transactiondata)
-                            await transactionsHistory.save(async (err)=>{
-                                if(err){
-                                    return res.json({status : false, data : "failed"})
-                                }else{
-                                    await WithdrawHistory.updateOne({ _id : data._id}, {status: resultData.status} )
-                                    return res.json({ status : true, data:resultData.status})
-                                }
-                            })
-                        }
-                    })
-                }
-            }
-        }else{
-            return res.json({status : false, data : "You cannot Payout many than the balance amount."})
-        }
-    }else{
-        await PayoutOrder(req,res,next)
+exports.Paygate10Payout = async(last_item,paymentconfig,useritem,itemuser,callback)=>{
+
+    let accountname = itemuser.paymentData.accountName;
+    var accountnumber = itemuser.paymentData.accountNumber
+    var username = useritem.userid.username;
+    var bankname = itemuser.paymentData.accountName;
+    var bankifsc = itemuser.paymentData.IfscCode;
+    var bankbranch = accountname;
+    var bankaddress = accountname;
+
+    const timestamp = Math.floor(new Date().valueOf()/1000)
+    const { midcode, midsecret, request_url, callbackurl2 } = paymentconfig.configData;
+    let balance = parseFloat(last_item.amount).toFixed(2);
+    let options = {
+        'method': 'POST',
+        'url': request_url,
+        'headers': {
+            'Content-Type': 'application/json'
+        },
     }
+            
+    const encrypthash = md5(midsecret+timestamp+balance)
+    const requestcode = md5(timestamp)
+    let form = {
+        requesttype : "withdrawal",
+        requestfor : "netbanking",
+        countrycode : "IN",
+        amount : balance,
+        timestamp,
+        currency : "INR", reference1 : "", reference2 : "", reference3 : "", reference4 : "", reference5 : "",
+        midcode,
+        encrypthash,
+        requestcode,
+        username,
+        accountname,
+        accountnumber,
+        bankname,
+        bankifsc,
+        bankbranch,
+        bankaddress,
+        callbackurl:callbackurl2
+    }
+                
+    Request.post({...options, body:JSON.stringify(form)}, async (error, response) => {
+        if (error){
+            callback({status : false, error : "Ruppepayment server error"})
+        } else {
+            let resultData = JSON.parse(response.body);
+            console.log(resultData)
+            if ( response.statusCode == 400) {
+                callback({status : false, error : "Ruppepayment server error"})
+            }else if( resultData.status == 'APPROVED'){
+                callback({status : true , data : resultData.payoutid , error : "success"})
+            }else {
+                callback({status : false , error : resultData.message});
+            }
+        }
+    })
 }
+
+

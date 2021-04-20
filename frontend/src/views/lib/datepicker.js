@@ -1,9 +1,6 @@
 import React, { Component } from 'react'
-import { connect } from 'react-redux'
 import { DateRangePicker  } from 'react-date-range';
-import Moment from 'react-moment';
 import {Button,Form,Modal,ModalHeader,ModalBody,ModalFooter,Label,Input} from "reactstrap"
-Moment.globalFormat = 'YYYY/MM/DD hh:mm:ss';
 
 export class datepicker extends Component {
 
@@ -28,17 +25,14 @@ export class datepicker extends Component {
 
     DateChange_action = (e) =>{
         e.preventDefault();
-        this.datetoggleModal()
-        this.props.onChange({start:this.state.selectionRange.startDate,end : this.state.selectionRange.endDate})
+        this.datetoggleModal();
+        let dates =  this.state.selectionRange;
+        let start  = (dates.startDate).toString();
+        let end = new Date(new Date(dates.endDate).valueOf() + 24 * 60 * 60 * 1000).toString();
+        console.log(start)
+        console.log(end)
+        this.props.onChange({start: start,end : end})
     }
-
-    DateRange_change = (e) =>{
-       this.setState(prevState => ({
-            datemodal: !prevState.datemodal
-        }));
-        this.props.onChange({start:this.state.selectionRange.startDate,end : this.state.selectionRange.endDate})        
-    }
-    
 
     render() {
         let datestring = new Date(this.state.selectionRange.startDate).toDateString() + " ~ " + new Date(this.state.selectionRange.endDate).toDateString()
@@ -46,8 +40,7 @@ export class datepicker extends Component {
             <div className="w-100">
                 <Label className="font-weight-bold w-100" style={{fontSize:"1rem"}}  onClick={()=>this.datetoggleModal()}>
                     <Input placeholder="Select Date"  disabled={true}  type="text" value={datestring} />
-                    {/* <Moment  date={(new Date(this.state.selectionRange.startDate))} /> ~  */}
-                    {/* <Moment  date={(new Date(this.state.selectionRange.endDate))} /> */}
+                    
                 </Label>
                 <Modal isOpen={this.state.datemodal} toggle={this.datetoggleModal} className="modal-dialog-centered modal-lg" >
                     <Form className="" action="#" onSubmit={(e) =>this.DateChange_action(e)}>
@@ -70,12 +63,4 @@ export class datepicker extends Component {
     }
 }
 
-const mapStateToProps = (state) => ({
-    
-})
-
-const mapDispatchToProps = {
-    
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(datepicker)
+export default (datepicker)

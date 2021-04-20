@@ -76,6 +76,14 @@ class App extends PureComponent {
     this.props.modalflg(!this.props.modal)
   }
 
+  componentDidUpdate(prevProps,prevState) {
+    if (prevState.crop.aspect !== this.props.aspect) {
+      let crop = this.state.crop;
+      crop.aspect = this.props.aspect;
+      this.setState({crop : crop})
+    }
+  }
+
   cropfileupload= ()=>{
     if(!this.state.croppedImageUrl){
       toast.error("please select img")
@@ -87,11 +95,11 @@ class App extends PureComponent {
 
   render() {
     const { crop, croppedImageUrl, src } = this.state;
-
+    console.log(crop)
     return (
-        <Modal isOpen={this.props.modal}  toggle={this.toggleModal} className={`modal-dialog-centered modal-${this.props.size}`} fade={true}>
+        <Modal isOpen={this.props.modal}  toggle={this.toggleModal} className={`modal-dialog-centered modal-md`} fade={true}>
           <ModalHeader toggle={this.toggleModal}>
-            Slider Upload
+             Upload
           </ModalHeader>
           <ModalBody>
             <Col md="12"  className="text-center">
@@ -108,9 +116,11 @@ class App extends PureComponent {
                   onChange={this.onCropChange}
                 />
               )}
+            <Col md="12" className="text-center mt-1">
               {croppedImageUrl && (
-                <img alt="Crop" style={{ maxWidth: '100%' }} src={croppedImageUrl} />
+                <img alt="Crop"  src={croppedImageUrl} />
               )}
+            </Col>
             </Col>
           </ModalBody>
           <ModalFooter className="text-center justify-content-center">
